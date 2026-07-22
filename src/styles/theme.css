@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Vaarta accent — refined jade/emerald */
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d1fae5;
+  --color-accent-400: #34d399;
+  --color-accent-500: #10b981;
+  --color-accent-600: #059669;
+  --color-accent-700: #047857;
+  --color-accent-800: #065f46;
+
+  /* Warm stone neutrals */
+  --color-stone-50: #faf9f7;
+  --color-stone-100: #f4f2ee;
+  --color-stone-200: #e9e5df;
+  --color-stone-300: #d6d1c7;
+  --color-stone-400: #a8a196;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-900;
+  }
+
+  .dark body {
+    @apply bg-[#14120F] text-stone-100;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    @apply transition-shadow duration-200;
+  }
+}

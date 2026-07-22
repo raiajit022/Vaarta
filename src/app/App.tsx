@@ -1,0 +1,370 @@
+import { useState, useEffect } from "react";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "./hooks/useTheme";
+import { VaartaLogo } from "./components/VaartaLogo";
+import { BrandPanel } from "./components/BrandPanel";
+import { LoginScreen } from "./components/auth/LoginScreen";
+import { RegisterScreen } from "./components/auth/RegisterScreen";
+import { ForgotScreen } from "./components/auth/ForgotScreen";
+import { CheckEmailScreen } from "./components/auth/CheckEmailScreen";
+import { ResetScreen } from "./components/auth/ResetScreen";
+
+import { LandingPage } from "./components/landing/LandingPage";
+import { CoreApp } from "./components/coreapp/App";
+
+// Default demo credentials — replace with real auth backend later.
+const DEFAULT_EMAIL = "raiajit@vaarta.com";
+const DEFAULT_PASSWORD = "vaarta";
+
+export default function App() {
+  const { isDark, setIsDark } = useTheme();
+  
+  const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'reset'>('landing');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [terms, setTerms] = useState(false);
+  
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (authMode === 'check-email' && timer > 0) {
+      interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [authMode, timer]);
+
+  function validateLogin() {
+    const e: { [key: string]: string } = {};
+    if (!email) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      e.email = "Enter a valid email address";
+    if (!password) e.password = "Password is required";
+    return e;
+  }
+
+  function validateRegister() {
+    const e: { [key: string]: string } = {};
+    if (!name) e.name = "Name is required";
+    if (!email) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      e.email = "Enter a valid email address";
+    if (!password) e.password = "Password is required";
+    else if (password.length < 8)
+      e.password = "Password must be at least 8 characters";
+    if (password !== confirmPassword)
+      e.confirmPassword = "Passwords do not match";
+    if (!terms) e.terms = "You must agree to the Terms of Service";
+    return e;
+  }
+
+  function validateForgot() {
+    const e: { [key: string]: string } = {};
+    if (!email) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      e.email = "Enter a valid email address";
+    return e;
+  }
+
+  function validateReset() {
+    const e: { [key: string]: string } = {};
+    if (!password) e.password = "Password is required";
+    else if (password.length < 8) e.password = "Password must be at least 8 characters";
+    if (password !== confirmPassword) e.confirmPassword = "Passwords do not match";
+    return e;
+  }
+
+  function handleSubmit(evt: React.FormEvent) {
+    evt.preventDefault();
+    let e = {};
+    if (authMode === 'register') e = validateRegister();
+    else if (authMode === 'forgot') e = validateForgot();
+    else if (authMode === 'reset') e = validateReset();
+    else e = validateLogin();
+
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
+      return;
+    }
+    setErrors({});
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      
+      if (authMode === 'forgot') {
+        setAuthMode('check-email');
+        setTimer(30);
+      } else if (authMode === 'reset') {
+        // Success state for reset -> Go back to login
+        setAuthMode('login');
+        setPassword("");
+        setConfirmPassword("");
+      } else if (authMode === 'login') {
+        // Verify demo credentials, then enter the CoreApp.
+        if (email === DEFAULT_EMAIL && password === DEFAULT_PASSWORD) {
+          setAuthenticated(true);
+        } else {
+          setErrors({ password: "Invalid email or password" });
+        }
+      } else {
+        // register success -> enter the CoreApp
+        setAuthenticated(true);
+      }
+    }, 1200);
+  }
+
+  function switchMode(mode: 'landing' | 'login' | 'register' | 'forgot') {
+    setAuthMode(mode);
+    setErrors({});
+    setSubmitted(false);
+    setConfirmPassword("");
+    // Prefill demo credentials on the login screen for convenience.
+    if (mode === 'login') {
+      setEmail(DEFAULT_EMAIL);
+      setPassword(DEFAULT_PASSWORD);
+    } else {
+      setPassword("");
+    }
+  }
+
+  if (authenticated) {
+    return (
+      <CoreApp
+        onSignOut={() => {
+          setAuthenticated(false);
+          setAuthMode('login');
+          setEmail(DEFAULT_EMAIL);
+          setPassword(DEFAULT_PASSWORD);
+        }}
+      />
+    );
+  }
+
+  if (authMode === 'landing') {
+    return (
+      <LandingPage 
+        isDark={isDark} 
+        setIsDark={setIsDark} 
+        onSignIn={() => switchMode('login')} 
+        onGetStarted={() => switchMode('register')} 
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen grid lg:grid-cols-2 font-sans bg-[#faf9f7] dark:bg-[#14120F] text-stone-900 dark:text-stone-100 selection:bg-emerald-500/30 transition-colors duration-200">
+      <BrandPanel />
+
+      {/* Auth side */}
+      <div className="flex flex-col min-h-screen">
+        <header className="flex items-center justify-between p-6 md:px-8">
+          <div className="lg:hidden cursor-pointer" onClick={() => switchMode('landing')}>
+            <VaartaLogo />
+          </div>
+          <div className="hidden lg:block cursor-pointer" onClick={() => switchMode('landing')}>
+            {/* Added a subtle back to home button for desktop just in case */}
+            <span className="text-[13px] font-medium text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors">← Back to website</span>
+          </div>
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="p-2 rounded-full text-stone-500 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-6 py-12">
+          <div className="w-full max-w-[420px]">
+            <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[16px] shadow-[0_8px_30px_rgb(28,25,23,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] overflow-hidden">
+              <div className="p-8">
+                
+                {authMode === 'check-email' ? (
+                  <CheckEmailScreen
+                    email={email}
+                    timer={timer}
+                    setTimer={setTimer}
+                    loading={loading}
+                    setLoading={setLoading}
+                    setAuthMode={setAuthMode}
+                    switchMode={switchMode}
+                  />
+                ) : (
+                  <>
+                    <div className="mb-8">
+                      <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-white mb-2">
+                        {submitted 
+                          ? "Check your email" 
+                          : authMode === 'register' 
+                            ? "Create your account" 
+                            : authMode === 'forgot'
+                              ? "Forgot password?"
+                              : authMode === 'reset'
+                                ? "Set new password"
+                                : "Log in to Vaarta"}
+                      </h1>
+                      <p className="text-[14px] leading-relaxed text-stone-500 dark:text-stone-400">
+                        {submitted
+                          ? "We sent a secure link to your workspace. You can safely close this window."
+                          : authMode === 'register' 
+                            ? "Join your team's workspace on Vaarta." 
+                            : authMode === 'forgot'
+                              ? "No worries, we'll send you reset instructions. Please enter your work email."
+                              : authMode === 'reset'
+                                ? "Your new password must be different from previously used passwords."
+                                : "Enter your work email to join your team's workspace."}
+                      </p>
+                    </div>
+
+                    {submitted ? (
+                      <div className="flex flex-col gap-6">
+                        <button
+                          onClick={() => {
+                            setSubmitted(false);
+                            setEmail("");
+                            setPassword("");
+                            if (authMode === 'register') {
+                              setName("");
+                              setMobile("");
+                              setConfirmPassword("");
+                              setTerms(false);
+                            }
+                          }}
+                          className="text-[13px] font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors flex items-center gap-1 w-fit"
+                        >
+                          Return to {authMode === 'register' ? "registration" : "login"}
+                        </button>
+                      </div>
+                    ) : authMode === 'forgot' ? (
+                      <ForgotScreen
+                        email={email}
+                        setEmail={setEmail}
+                        errors={errors}
+                        setErrors={setErrors}
+                        loading={loading}
+                        handleSubmit={handleSubmit}
+                      />
+                    ) : authMode === 'reset' ? (
+                      <ResetScreen
+                        password={password}
+                        setPassword={setPassword}
+                        confirmPassword={confirmPassword}
+                        setConfirmPassword={setConfirmPassword}
+                        errors={errors}
+                        setErrors={setErrors}
+                        loading={loading}
+                        handleSubmit={handleSubmit}
+                      />
+                    ) : authMode === 'register' ? (
+                      <RegisterScreen
+                        name={name}
+                        setName={setName}
+                        email={email}
+                        setEmail={setEmail}
+                        mobile={mobile}
+                        setMobile={setMobile}
+                        password={password}
+                        setPassword={setPassword}
+                        confirmPassword={confirmPassword}
+                        setConfirmPassword={setConfirmPassword}
+                        terms={terms}
+                        setTerms={setTerms}
+                        errors={errors}
+                        setErrors={setErrors}
+                        loading={loading}
+                        handleSubmit={handleSubmit}
+                      />
+                    ) : (
+                      <LoginScreen
+                        email={email}
+                        setEmail={setEmail}
+                        password={password}
+                        setPassword={setPassword}
+                        errors={errors}
+                        setErrors={setErrors}
+                        loading={loading}
+                        handleSubmit={handleSubmit}
+                        switchMode={switchMode}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+
+              {!submitted && authMode !== 'check-email' && (
+                <div className="bg-stone-50/60 dark:bg-[#211D17]/50 border-t border-stone-100 dark:border-stone-800/80 p-8 pt-6 flex flex-col items-center gap-6">
+                  {(authMode === 'forgot' || authMode === 'reset') ? (
+                    <button
+                      onClick={() => switchMode('login')}
+                      className="text-[13.5px] font-medium text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"
+                    >
+                      ← Back to log in
+                    </button>
+                  ) : (
+                    <>
+                      {authMode === 'login' && (
+                        <button
+                          type="button"
+                          className="w-full h-10 flex items-center justify-center gap-2 rounded-[6px] bg-white dark:bg-[#1E1B16] border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-[#262119] text-stone-700 dark:text-stone-200 text-[14px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M14.94 8.16c0-.52-.047-1.02-.133-1.5H8v2.84h3.883a3.32 3.32 0 0 1-1.44 2.18v1.81h2.33c1.367-1.26 2.157-3.11 2.157-5.33z"
+                              fill="#4285F4"
+                            />
+                            <path
+                              d="M8 15c1.95 0 3.587-.647 4.78-1.75l-2.33-1.81c-.647.433-1.473.69-2.45.69-1.883 0-3.48-1.27-4.05-2.98H1.54v1.87A7.002 7.002 0 0 0 8 15z"
+                              fill="#34A853"
+                            />
+                            <path
+                              d="M3.95 9.15a4.205 4.205 0 0 1-.22-1.35c0-.47.08-.92.22-1.35V4.58H1.54A7.002 7.002 0 0 0 1 8c0 1.13.27 2.2.54 3.02l2.41-1.87z"
+                              fill="#FBBC05"
+                            />
+                            <path
+                              d="M8 3.82c1.062 0 2.013.365 2.763 1.08l2.07-2.07C11.587.892 9.95.2 8 .2A7.002 7.002 0 0 0 1.54 4.58l2.41 1.87C4.52 5.09 6.117 3.82 8 3.82z"
+                              fill="#EA4335"
+                            />
+                          </svg>
+                          Continue with Google
+                        </button>
+                      )}
+
+                      <p className="text-center text-[13.5px] text-stone-500 dark:text-stone-400">
+                        {authMode === 'register' ? "Already have an account?" : "Don't have an account?"}{" "}
+                        <button
+                          onClick={() => switchMode(authMode === 'register' ? 'login' : 'register')}
+                          className="font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors hover:underline underline-offset-2"
+                        >
+                          {authMode === 'register' ? "Log in" : "Register"}
+                        </button>
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+
+        <footer className="p-6 text-center">
+          <p className="text-[13px] font-medium text-stone-400 dark:text-stone-600 flex items-center justify-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M6 1L1.5 3v3c0 2.625 1.95 5.085 4.5 5.625C8.55 11.085 10.5 8.625 10.5 6V3L6 1z"
+                fill="currentColor"
+              />
+            </svg>
+            SOC 2 Type II Certified
+          </p>
+        </footer>
+      </div>
+    </div>
+  );
+}
