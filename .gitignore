@@ -16,8 +16,12 @@ build/
 Thumbs.db
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
+
+# Binary installers (never commit these)
+*.dmg
 
 # Logs
 logs/
