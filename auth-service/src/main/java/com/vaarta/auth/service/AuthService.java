@@ -87,10 +87,9 @@ public class AuthService {
             log.info("Initialized user profile in user-service for: {}", user.getEmail());
         } catch (Exception e) {
             log.error("Failed to initialize user profile for: {}", user.getEmail(), e);
-            // Non-fatal for auth service, but we should probably handle it or let it fail?
-            // If it fails, the user will be registered but won't have a profile. 
-            // In a real system, we'd use an outbox pattern or message queue.
-            // For now, let it be non-fatal or fail the transaction. Let's fail the transaction to be safe.
+            // We treat profile initialization as a critical step in registration.
+            // If the user-service is unavailable, we fail the entire transaction 
+            // to prevent orphaned accounts without profiles.
             throw new RuntimeException("Failed to initialize user profile", e);
         }
         
