@@ -20,6 +20,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+/**
+ * JWT Validation Filter.
+ *
+ * <p>
+ * Intercepts incoming HTTP requests, extracts the JWT from the Authorization
+ * header,
+ * validates its signature, and populates the Spring SecurityContext with the
+ * user's details.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtValidationFilter extends OncePerRequestFilter {
@@ -29,8 +38,8 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -51,19 +60,20 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 
             String userId = claims.get("userId", String.class); // UUID string
             String role = claims.get("role", String.class);
-            if (role == null) role = "ROLE_USER";
+            if (role == null)
+                role = "ROLE_USER";
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userId, // Using userId as principal
                     null,
-                    Collections.singletonList(new SimpleGrantedAuthority(role))
-            );
+                    Collections.singletonList(new SimpleGrantedAuthority(role)));
 
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
         } catch (Exception e) {
             // Token is invalid/expired
-            // SecurityContext remains empty, which will lead to 401/403 for protected routes
+            // SecurityContext remains empty, which will lead to 401/403 for protected
+            // routes
         }
 
         filterChain.doFilter(request, response);

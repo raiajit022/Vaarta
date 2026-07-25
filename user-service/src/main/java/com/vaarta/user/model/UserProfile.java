@@ -13,6 +13,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * Entity representing a user's profile information.
+ */
 @Entity
 @Table(name = "user_profiles")
 @Data
