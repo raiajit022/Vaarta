@@ -13,6 +13,13 @@ import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 
+/**
+ * Core service for composing and dispatching email notifications.
+ *
+ * <p>Uses the Resend HTTP API to send transactional emails. All sent emails,
+ * regardless of success or failure, are recorded in the database via
+ * {@link NotificationLog} for auditing and troubleshooting.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,6 +34,11 @@ public class NotificationService {
     @Value("${resend.from-address}")
     private String fromAddress;
 
+    /**
+     * Composes and sends a meeting invitation email.
+     *
+     * @param request the request containing recipient, title, and join link.
+     */
     public void sendMeetingInvite(SendInviteRequest request) {
         String html = """
                 <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
@@ -44,6 +56,11 @@ public class NotificationService {
         sendEmail(request.getRecipientEmail(), "Invitation: " + request.getMeetingTitle(), html, NotificationType.MEETING_INVITE, request.getMeetingId());
     }
 
+    /**
+     * Composes and sends a meeting reminder email.
+     *
+     * @param request the request containing recipient, title, join link, and countdown minutes.
+     */
     public void sendMeetingReminder(SendReminderRequest request) {
         String html = """
                 <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
@@ -61,6 +78,15 @@ public class NotificationService {
         sendEmail(request.getRecipientEmail(), "Reminder: " + request.getMeetingTitle(), html, NotificationType.MEETING_REMINDER, request.getMeetingId());
     }
 
+    /**
+     * Internal helper to execute the HTTP POST to the Resend API and log the outcome.
+     *
+     * @param to        the recipient's email address.
+     * @param subject   the subject line of the email.
+     * @param html      the HTML body content of the email.
+     * @param type      the categorization of this notification (e.g., INVITE, REMINDER).
+     * @param meetingId the UUID of the associated meeting, for auditing.
+     */
     private void sendEmail(String to, String subject, String html, NotificationType type, java.util.UUID meetingId) {
         NotificationLog logEntry = new NotificationLog();
         logEntry.setRecipientEmail(to);

@@ -7,6 +7,9 @@ import lombok.Setter;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * Entity representing an audit log entry for a sent or failed notification.
+ */
 @Entity
 @Table(name = "notification_log")
 @Getter

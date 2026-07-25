@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.util.UUID;
 
+/**
+ * Data Transfer Object for requesting a meeting invitation email.
+ */
 @Data
 public class SendInviteRequest {
     private String recipientEmail;
