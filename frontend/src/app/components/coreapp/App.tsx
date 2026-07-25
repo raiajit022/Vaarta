@@ -10,8 +10,17 @@ import { AdminUsersPage } from "../admin/AdminUsersPage";
 import { AdminMeetingsPage } from "../admin/AdminMeetingsPage";
 import { useAuthStore } from "../../store/useAuthStore";
 
+/**
+ * Core application container component.
+ * 
+ * Manages the top-level routing state (since we use a custom state-based router
+ * instead of react-router for this prototype) and renders the appropriate view.
+ * Also handles global modals (create meeting, schedule meeting).
+ *
+ * @param onSignOut Callback invoked when the user clicks the sign out button.
+ */
 export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
-  const [currentView, setCurrentView] = useState("dashboard"); // dashboard, meetings, recordings, contacts, settings, join, pre-call, waiting-guest, waiting-host
+  const [currentView, setCurrentView] = useState("dashboard");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMeetingCreatedModalOpen, setIsMeetingCreatedModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -104,7 +113,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
       case "join":
         return <JoinMeetingView onJoin={() => setCurrentView("pre-call")} />;
       case "pre-call":
-        // For prototype purposes, alternating between guest and host waiting rooms
+        // Device check step before entering the actual meeting
         return <PreCallDeviceCheckView onJoinNow={() => setCurrentView("waiting-guest")} />;
       case "waiting-guest":
         return <WaitingRoomGuestView onLeave={() => setCurrentView("dashboard")} />;
@@ -136,7 +145,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
     }
   };
 
-  // If we are in full-screen views, don't show sidebar
+  // Full-screen views hide the sidebar completely
   const isFullScreenView = ["join", "pre-call", "waiting-guest", "live"].includes(currentView);
 
   return (

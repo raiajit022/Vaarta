@@ -4,6 +4,14 @@ import { cn } from "../../utils/cn";
 import { Input } from "../ui/Input";
 import { useAuthStore } from "../../../../store/useAuthStore";
 
+/**
+ * Renders the main sidebar navigation.
+ * Includes links to Dashboard, Meetings, Recordings, Contacts, and Settings.
+ * Displays an Admin Portal link if the user has the 'ADMIN' role.
+ *
+ * @param props.currentView The ID of the currently active view.
+ * @param props.setView Callback to update the active view.
+ */
 export function Sidebar({ currentView, setView }: { currentView: string, setView: (v: string) => void }) {
   const { user } = useAuthStore();
   
@@ -50,6 +58,12 @@ export function Sidebar({ currentView, setView }: { currentView: string, setView
   );
 }
 
+/**
+ * Renders the top navigation bar.
+ * Contains global search, a notifications dropdown, and a user profile/avatar menu.
+ *
+ * @param props.onAvatarClick Optional callback when the user's avatar is clicked.
+ */
 export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

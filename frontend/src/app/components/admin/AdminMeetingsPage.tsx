@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { meetingClient } from "../../apiClient";
 import { Video, Users, Calendar, AlertCircle } from "lucide-react";
 
+/**
+ * Representation of a meeting for administrative purposes.
+ */
 interface AdminMeeting {
   id: string;
   hostId: string;
@@ -12,8 +15,13 @@ interface AdminMeeting {
   startedAt: string | null;
   endedAt: string | null;
   createdAt: string;
-  participants: any[]; // can simplify for admin view
+  participants: any[];
 }
+
+/**
+ * Admin portal page for monitoring and managing active meetings.
+ * Allows administrators to view all meetings and forcefully end them if necessary.
+ */
 
 export function AdminMeetingsPage() {
   const [meetings, setMeetings] = useState<AdminMeeting[]>([]);

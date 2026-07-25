@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { authClient } from "../../apiClient";
 import { Shield, ShieldAlert, CheckCircle2, XCircle, MoreVertical } from "lucide-react";
 
+/**
+ * Representation of a user for administrative purposes.
+ */
 interface AdminUser {
   id: string;
   email: string;
@@ -11,6 +14,12 @@ interface AdminUser {
   disabled: boolean;
   createdAt: string;
 }
+
+/**
+ * Admin portal page for managing users.
+ * Displays a list of all registered users and allows administrators
+ * to toggle user roles and disable/enable accounts.
+ */
 
 export function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);

@@ -3,6 +3,14 @@ import { LiveKitRoom, VideoConference, RoomAudioRenderer } from '@livekit/compon
 import '@livekit/components-styles';
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 
+/**
+ * Renders the active video conferencing room using LiveKit.
+ * Connects to the LiveKit server using the retrieved access token
+ * and displays the default `VideoConference` UI.
+ *
+ * @param props.meeting The active meeting object data.
+ * @param props.onLeave Callback invoked when the user disconnects or leaves the room.
+ */
 export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: () => void }) {
   const { fetchLiveKitToken } = useMeetingStore();
   const [token, setToken] = useState<string | null>(null);

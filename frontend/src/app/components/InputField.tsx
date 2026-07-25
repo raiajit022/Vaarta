@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
+/**
+ * A reusable, styled input field component with optional label and error state.
+ * Supports a toggleable password visibility feature if the type is "password".
+ */
 export function InputField({
   label,
   type,
