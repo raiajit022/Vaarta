@@ -157,7 +157,7 @@ export function MeetingCreatedModal({ meeting, onClose, onStart }: { meeting: an
         </div>
         <h2 className="text-[20px] font-semibold text-stone-900 tracking-tight mb-2">Meeting Created</h2>
         <p className="text-[14px] text-stone-500 mb-6">Your meeting is ready to start. Share this code with participants.</p>
-        
+
         <div className="bg-stone-50 border border-stone-200 rounded-[8px] p-4 mb-6 flex items-center justify-between">
           <div className="font-mono text-[16px] text-stone-900 font-medium tracking-widest">
             {meeting?.joinCode || "ERROR-CODE"}
@@ -252,7 +252,7 @@ export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClos
             <div className="flex items-center justify-between mb-2">
               <label className="block text-[13px] font-medium text-stone-900">AI Summary</label>
               {meeting.status === 'ENDED' && !meeting.summary && (
-                <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
+                <Button variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
                   {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
                 </Button>
               )}
@@ -267,12 +267,12 @@ export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClos
               </div>
             )}
           </div>
-          
+
           <div className="pt-4 border-t border-stone-100">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-[13px] font-medium text-stone-900">Action Items</label>
               {meeting.status === 'ENDED' && !meeting.actionItems && (
-                <Button variant="outline" size="sm" onClick={handleGenerateActionItems} disabled={isGeneratingActionItems}>
+                <Button variant="outline" onClick={handleGenerateActionItems} disabled={isGeneratingActionItems}>
                   {isGeneratingActionItems ? 'Generating...' : 'Extract Action Items'}
                 </Button>
               )}
