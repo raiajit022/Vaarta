@@ -89,6 +89,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- ── LiveKit Server SDK ───────────────────────────────────────── -->
+        <dependency>
+            <groupId>io.livekit</groupId>
+            <artifactId>livekit-server</artifactId>
+            <version>0.10.0</version>
+        </dependency>
+
         <!-- ── HTTP Client for Resend API ───────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

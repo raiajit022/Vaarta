@@ -9,6 +9,17 @@ RUN npm install --frozen-lockfile
 
 # Copy source and build
 COPY . .
+
+ARG VITE_AUTH_API_URL
+ARG VITE_USER_API_URL
+ARG VITE_MEETING_API_URL
+ARG VITE_LIVEKIT_URL
+
+ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
+ENV VITE_USER_API_URL=$VITE_USER_API_URL
+ENV VITE_MEETING_API_URL=$VITE_MEETING_API_URL
+ENV VITE_LIVEKIT_URL=$VITE_LIVEKIT_URL
+
 RUN npm run build
 
 # ─── Stage 2: Serve ───────────────────────────────────────────────────────────
