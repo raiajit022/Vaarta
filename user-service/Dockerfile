@@ -18,7 +18,7 @@ WORKDIR /app
 RUN groupadd -r spring && useradd -r -g spring spring
 USER spring:spring
 
-COPY --from=build /app/target/auth-service-*.jar app.jar
+COPY --from=build /app/target/user-service-*.jar app.jar
 
 EXPOSE 8080
 
