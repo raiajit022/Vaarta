@@ -10,6 +10,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Security configuration for the meeting service.
+ * <p>
+ * Defines the security filter chain, configures CORS, disables CSRF (as we use JWTs),
+ * and specifies endpoint authorization rules.
+ */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor

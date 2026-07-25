@@ -4,6 +4,9 @@ import com.vaarta.meeting.model.MeetingStatus;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * Data Transfer Object for representing meeting details.
+ */
 public class MeetingResponse {
     private UUID id;
     private String title;

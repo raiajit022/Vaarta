@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * Entity representing a scheduled or live meeting on the platform.
+ */
 @Entity
 @Table(name = "meetings")
 public class Meeting {

@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * Entity representing a chat message sent during a meeting.
+ */
 @Entity
 @Table(name = "chat_messages")
 public class ChatMessage {

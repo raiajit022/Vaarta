@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * REST controller for user-facing meeting operations.
+ *
+ * <p>Handles creating, joining, and listing meetings for the currently authenticated user.
+ */
 @RestController
 @RequestMapping("/api/meetings")
 public class MeetingController {
@@ -25,27 +30,58 @@ public class MeetingController {
         return UUID.fromString(userIdStr);
     }
 
+    /**
+     * Creates a new meeting. The caller is automatically designated as the host.
+     *
+     * @param request the meeting configuration (title, type, scheduled time, etc.).
+     * @return the created meeting details, including the join code.
+     */
     @PostMapping
     public ResponseEntity<MeetingResponse> createMeeting(@RequestBody CreateMeetingRequest request) {
         MeetingResponse response = meetingService.createMeeting(request, getCurrentUserId());
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Retrieves all meetings associated with the currently authenticated user
+     * (either as a host or as a participant).
+     *
+     * @return a list of meetings.
+     */
     @GetMapping("/me")
     public ResponseEntity<List<MeetingResponse>> getMyMeetings() {
         return ResponseEntity.ok(meetingService.getMyMeetings(getCurrentUserId()));
     }
 
+    /**
+     * Retrieves the details of a specific meeting.
+     *
+     * @param id the UUID of the meeting.
+     * @return the meeting details.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<MeetingResponse> getMeeting(@PathVariable UUID id) {
         return ResponseEntity.ok(meetingService.getMeeting(id));
     }
 
+    /**
+     * Joins a meeting using a short join code.
+     * Adds the current user to the meeting's participant list if not already present.
+     *
+     * @param joinCode the unique 9-character code for the meeting.
+     * @return the meeting details.
+     */
     @PostMapping("/join/{joinCode}")
     public ResponseEntity<MeetingResponse> joinMeeting(@PathVariable String joinCode) {
         return ResponseEntity.ok(meetingService.joinMeeting(joinCode, getCurrentUserId()));
     }
 
+    /**
+     * Ends a meeting. Only the host of the meeting can perform this action.
+     *
+     * @param id the UUID of the meeting to end.
+     * @return HTTP 200 OK on success.
+     */
     @PostMapping("/{id}/end")
     public ResponseEntity<Void> endMeeting(@PathVariable UUID id) {
         meetingService.endMeeting(id, getCurrentUserId());
