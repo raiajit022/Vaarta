@@ -6,6 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
+/**
+ * Repository interface for managing {@link com.vaarta.notification.model.NotificationLog} entities.
+ */
 @Repository
 public interface NotificationLogRepository extends JpaRepository<NotificationLog, UUID> {
 }

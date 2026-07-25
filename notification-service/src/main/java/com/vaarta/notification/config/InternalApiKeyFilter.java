@@ -10,6 +10,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filter for securing internal API endpoints.
+ *
+ * <p>Validates the presence and correctness of the {@code X-Internal-Key} header
+ * to ensure that only authorized internal microservices can access specific routes.
+ */
 @Component
 public class InternalApiKeyFilter extends OncePerRequestFilter {
 
