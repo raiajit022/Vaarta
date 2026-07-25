@@ -43,6 +43,9 @@ public class Meeting {
     @Column(columnDefinition = "TEXT")
     private String summary;
 
+    @Column(name = "action_items", columnDefinition = "TEXT")
+    private String actionItems;
+
     public Meeting() {
     }
 
@@ -124,5 +127,13 @@ public class Meeting {
 
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    public String getActionItems() {
+        return actionItems;
+    }
+
+    public void setActionItems(String actionItems) {
+        this.actionItems = actionItems;
     }
 }

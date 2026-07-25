@@ -235,17 +235,40 @@ public class MeetingService {
         return MeetingResponse.from(meeting);
     }
 
+    @Transactional
+    public MeetingResponse generateActionItems(UUID id, UUID userId) {
+        Meeting meeting = meetingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        participantRepository.findByMeetingIdAndUserId(id, userId)
+                .orElseThrow(() -> new RuntimeException("User is not a participant of this meeting"));
+
+        if (meeting.getStatus() != MeetingStatus.ENDED) {
+            throw new RuntimeException("Can only extract action items from completed meetings");
+        }
+
+        try {
+            java.util.Map<String, Object> response = aiRestClient.post()
+                    .uri("/agents/invoke")
+                    .body(java.util.Map.of(
+                            "agentType", "ACTION_ITEMS",
+                            "meetingId", id.toString()
+                    ))
+                    .retrieve()
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+
+            if (response != null && response.containsKey("actionItems")) {
+                meeting.setActionItems((String) response.get("actionItems"));
+                meeting = meetingRepository.save(meeting);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate action items: " + e.getMessage());
+        }
+
+        return MeetingResponse.from(meeting);
+    }
+
     private MeetingResponse mapToResponse(Meeting meeting) {
-        MeetingResponse response = new MeetingResponse();
-        response.setId(meeting.getId());
-        response.setTitle(meeting.getTitle());
-        response.setHostId(meeting.getHostId());
-        response.setJoinCode(meeting.getJoinCode());
-        response.setStatus(meeting.getStatus());
-        response.setScheduledStart(meeting.getScheduledStart());
-        response.setStartedAt(meeting.getStartedAt());
-        response.setEndedAt(meeting.getEndedAt());
-        response.setCreatedAt(meeting.getCreatedAt());
-        return response;
+        return MeetingResponse.from(meeting);
     }
 }

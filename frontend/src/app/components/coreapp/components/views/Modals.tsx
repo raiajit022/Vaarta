@@ -186,19 +186,40 @@ export function MeetingCreatedModal({ meeting, onClose, onStart }: { meeting: an
 }
 
 export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClose: () => void }) {
-  const { generateSummary, isLoading } = useMeetingStore();
-  const [isGenerating, setIsGenerating] = React.useState(false);
+  const { generateSummary, generateActionItems, isLoading } = useMeetingStore();
+  const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
+  const [isGeneratingActionItems, setIsGeneratingActionItems] = React.useState(false);
 
   const handleGenerateSummary = async () => {
     try {
-      setIsGenerating(true);
+      setIsGeneratingSummary(true);
       await generateSummary(meeting.id);
     } catch (e) {
       console.error(e);
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingSummary(false);
     }
   };
+
+  const handleGenerateActionItems = async () => {
+    try {
+      setIsGeneratingActionItems(true);
+      await generateActionItems(meeting.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingActionItems(false);
+    }
+  };
+
+  let parsedActionItems: any[] = [];
+  try {
+    if (meeting.actionItems) {
+      parsedActionItems = JSON.parse(meeting.actionItems);
+    }
+  } catch (e) {
+    console.error("Failed to parse action items", e);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -231,8 +252,8 @@ export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClos
             <div className="flex items-center justify-between mb-2">
               <label className="block text-[13px] font-medium text-stone-900">AI Summary</label>
               {meeting.status === 'ENDED' && !meeting.summary && (
-                <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isGenerating}>
-                  {isGenerating ? 'Generating...' : 'Generate Summary'}
+                <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
+                  {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
                 </Button>
               )}
             </div>
@@ -243,6 +264,43 @@ export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClos
             ) : (
               <div className="text-[13px] text-stone-500 italic">
                 {meeting.status === 'ENDED' ? 'No summary generated yet.' : 'Summary will be available after the meeting ends.'}
+              </div>
+            )}
+          </div>
+          
+          <div className="pt-4 border-t border-stone-100">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[13px] font-medium text-stone-900">Action Items</label>
+              {meeting.status === 'ENDED' && !meeting.actionItems && (
+                <Button variant="outline" size="sm" onClick={handleGenerateActionItems} disabled={isGeneratingActionItems}>
+                  {isGeneratingActionItems ? 'Generating...' : 'Extract Action Items'}
+                </Button>
+              )}
+            </div>
+            {meeting.actionItems ? (
+              parsedActionItems.length > 0 ? (
+                <div className="space-y-2">
+                  {parsedActionItems.map((item, idx) => (
+                    <div key={idx} className="bg-stone-50 p-3 rounded-lg flex items-start gap-3">
+                      <div className="mt-0.5 text-stone-400"><CheckCircle2 className="w-4 h-4" /></div>
+                      <div>
+                        <p className="text-[14px] text-stone-900 font-medium">{item.task}</p>
+                        {(item.owner || item.dueHint) && (
+                          <div className="flex items-center gap-2 mt-1 text-[12px] text-stone-500">
+                            {item.owner && <span className="bg-stone-200 px-1.5 py-0.5 rounded text-stone-700">{item.owner}</span>}
+                            {item.dueHint && <span>Due: {item.dueHint}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[13px] text-stone-500 italic">No action items were found in this meeting.</div>
+              )
+            ) : (
+              <div className="text-[13px] text-stone-500 italic">
+                {meeting.status === 'ENDED' ? 'No action items extracted yet.' : 'Action items will be available after the meeting ends.'}
               </div>
             )}
           </div>

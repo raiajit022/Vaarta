@@ -18,6 +18,7 @@ public class MeetingResponse {
     private ZonedDateTime endedAt;
     private ZonedDateTime createdAt;
     private String summary;
+    private String actionItems;
 
     public MeetingResponse() {}
 
@@ -44,6 +45,9 @@ public class MeetingResponse {
     public String getSummary() { return summary; }
     public void setSummary(String summary) { this.summary = summary; }
 
+    public String getActionItems() { return actionItems; }
+    public void setActionItems(String actionItems) { this.actionItems = actionItems; }
+
     public static MeetingResponse from(com.vaarta.meeting.model.Meeting meeting) {
         MeetingResponse response = new MeetingResponse();
         response.setId(meeting.getId());
@@ -56,6 +60,7 @@ public class MeetingResponse {
         response.setEndedAt(meeting.getEndedAt());
         response.setCreatedAt(meeting.getCreatedAt());
         response.setSummary(meeting.getSummary());
+        response.setActionItems(meeting.getActionItems());
         return response;
     }
 }

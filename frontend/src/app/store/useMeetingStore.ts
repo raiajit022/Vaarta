@@ -15,6 +15,7 @@ export interface Meeting {
     endedAt: string | null;
     createdAt: string;
     summary?: string;
+    actionItems?: string;
 }
 
 /**
@@ -38,6 +39,9 @@ interface MeetingStore {
 
     /** Generates the summary for an ended meeting */
     generateSummary: (meetingId: string) => Promise<Meeting>;
+
+    /** Generates the action items for an ended meeting */
+    generateActionItems: (meetingId: string) => Promise<Meeting>;
     
     /** Retrieves the LiveKit JWT and WebSocket URL required to connect to a meeting room. */
     fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
@@ -113,6 +117,21 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             return response.data;
         } catch (error: any) {
             set({ error: error.response?.data?.message || 'Failed to generate summary', isLoading: false });
+            throw error;
+        }
+    },
+    generateActionItems: async (meetingId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await meetingClient.post(`/api/meetings/${meetingId}/action-items:generate`);
+            // Update the meeting in local state
+            set((state) => ({
+                meetings: state.meetings.map(m => m.id === meetingId ? response.data : m),
+                isLoading: false
+            }));
+            return response.data;
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || 'Failed to generate action items', isLoading: false });
             throw error;
         }
     }

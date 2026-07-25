@@ -98,4 +98,14 @@ public class MeetingController {
         MeetingResponse response = meetingService.generateSummary(id, userId);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Generates action items for the meeting using the AI service.
+     */
+    @PostMapping("/{id}/action-items:generate")
+    public ResponseEntity<MeetingResponse> generateActionItems(@PathVariable UUID id) {
+        UUID userId = getCurrentUserId();
+        MeetingResponse response = meetingService.generateActionItems(id, userId);
+        return ResponseEntity.ok(response);
+    }
 }
