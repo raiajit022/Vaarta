@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Plus, Video, Calendar, Clock, Users, ArrowRight, MoreHorizontal } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { useAuthStore } from "../../../../store/useAuthStore";
+import { useMeetingStore } from "../../../../store/useMeetingStore";
 
 export function DashboardView({
   onCreateMeeting,
@@ -15,12 +16,20 @@ export function DashboardView({
 }) {
   const { user } = useAuthStore();
   const displayName = user?.fullName || user?.email.split('@')[0] || 'User';
+  const { meetings, fetchMyMeetings, isLoading } = useMeetingStore();
+
+  useEffect(() => {
+    fetchMyMeetings();
+  }, [fetchMyMeetings]);
+
+  const upcomingMeetings = meetings.filter(m => m.status === 'SCHEDULED' || m.status === 'LIVE');
+  const pastMeetings = meetings.filter(m => m.status === 'ENDED' || m.status === 'CANCELLED');
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Good morning, {displayName}.</h1>
-        <p className="text-[15px] text-stone-500 leading-relaxed">You have 3 meetings scheduled for today.</p>
+        <p className="text-[15px] text-stone-500 leading-relaxed">You have {upcomingMeetings.length} meetings scheduled.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -62,15 +71,21 @@ export function DashboardView({
             <Button variant="ghost" className="text-emerald-600 hover:text-emerald-700 h-8 px-2">View all</Button>
           </div>
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-4 flex items-center justify-between group">
+            {isLoading && <p className="text-sm text-stone-500">Loading...</p>}
+            {!isLoading && upcomingMeetings.length === 0 && <p className="text-sm text-stone-500">No upcoming meetings.</p>}
+            {upcomingMeetings.map((m) => (
+              <Card key={m.id} className="p-4 flex items-center justify-between group">
                 <div className="flex items-center gap-4">
-                  <div className="w-1.5 h-12 rounded-full bg-emerald-500"></div>
+                  <div className={`w-1.5 h-12 rounded-full ${m.status === 'LIVE' ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
                   <div>
-                    <h4 className="font-medium text-stone-900 text-[14px]">Q3 Product Strategy Sync</h4>
+                    <h4 className="font-medium text-stone-900 text-[14px]">{m.title}</h4>
                     <div className="flex items-center gap-3 text-[13px] text-stone-500 mt-1">
-                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> 10:00 AM - 11:30 AM</span>
-                      <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> 8 Participants</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" /> 
+                        {m.scheduledStart ? new Date(m.scheduledStart).toLocaleString() : 'Instant Meeting'}
+                      </span>
+                      {m.status === 'LIVE' && <span className="text-red-500 font-medium">LIVE</span>}
+                      <span className="flex items-center gap-1 font-mono">{m.joinCode}</span>
                     </div>
                   </div>
                 </div>
@@ -89,21 +104,24 @@ export function DashboardView({
           </div>
           <Card className="p-0 overflow-hidden">
             <div className="divide-y divide-stone-100">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="p-4 flex gap-3 hover:bg-stone-50 transition-colors">
+              {pastMeetings.length === 0 && <div className="p-4 text-sm text-stone-500 text-center">No recent activity</div>}
+              {pastMeetings.slice(0, 4).map((m) => (
+                <div key={m.id} className="p-4 flex gap-3 hover:bg-stone-50 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0">
                     <Video className="w-4 h-4 text-stone-500" />
                   </div>
                   <div>
-                    <p className="text-[14px] text-stone-900 font-medium">Design Review Recording</p>
-                    <p className="text-[13px] text-stone-500 mt-0.5">Ready to view • 2 hrs ago</p>
+                    <p className="text-[14px] text-stone-900 font-medium">{m.title}</p>
+                    <p className="text-[13px] text-stone-500 mt-0.5">{m.endedAt ? new Date(m.endedAt).toLocaleDateString() : 'Ended'}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="p-3 bg-stone-50 border-t border-stone-100 text-center">
-              <Button variant="ghost" className="w-full text-stone-500 h-8 text-[13px]">View all activity <ArrowRight className="w-3 h-3 ml-1" /></Button>
-            </div>
+            {pastMeetings.length > 4 && (
+                <div className="p-3 bg-stone-50 border-t border-stone-100 text-center">
+                <Button variant="ghost" className="w-full text-stone-500 h-8 text-[13px]">View all activity <ArrowRight className="w-3 h-3 ml-1" /></Button>
+                </div>
+            )}
           </Card>
         </div>
       </div>

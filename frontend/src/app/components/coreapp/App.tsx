@@ -11,6 +11,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMeetingCreatedModalOpen, setIsMeetingCreatedModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [activeMeeting, setActiveMeeting] = useState<any>(null);
   const { fetchProfile } = useAuthStore();
 
   useEffect(() => {
@@ -25,7 +26,8 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
     setIsScheduleModalOpen(true);
   };
 
-  const handleMeetingCreated = () => {
+  const handleMeetingCreated = (meeting: any) => {
+    setActiveMeeting(meeting);
     setIsCreateModalOpen(false);
     setIsScheduleModalOpen(false);
     setIsMeetingCreatedModalOpen(true);
@@ -133,8 +135,9 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
           onSuccess={handleMeetingCreated} 
         />
       )}
-      {isMeetingCreatedModalOpen && (
+      {isMeetingCreatedModalOpen && activeMeeting && (
         <MeetingCreatedModal 
+          meeting={activeMeeting}
           onClose={() => setIsMeetingCreatedModalOpen(false)} 
           onStart={handleStartMeeting} 
         />

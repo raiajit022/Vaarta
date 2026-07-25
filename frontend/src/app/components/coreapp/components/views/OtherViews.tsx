@@ -1,12 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Calendar, Video, Clock, Users, Search, Play, Phone, Mail, Settings, User, Bell, Shield, Copy, Plus, X } from "lucide-react";
 import { useAuthStore } from "../../../../store/useAuthStore";
+import { useMeetingStore } from "../../../../store/useMeetingStore";
 
 export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => void }) {
   const [activeTab, setActiveTab] = useState("upcoming");
+  const { meetings, fetchMyMeetings, isLoading } = useMeetingStore();
+
+  useEffect(() => {
+    fetchMyMeetings();
+  }, [fetchMyMeetings]);
+
+  const upcomingMeetings = meetings.filter(m => m.status === 'SCHEDULED' || m.status === 'LIVE');
+  const pastMeetings = meetings.filter(m => m.status === 'ENDED' || m.status === 'CANCELLED');
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
@@ -31,89 +40,58 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
         >
           Past
         </button>
-        <button 
-          onClick={() => setActiveTab("personal")}
-          className={`px-4 py-2 text-[14px] font-medium transition-colors ${activeTab === "personal" ? "text-emerald-600 border-b-2 border-emerald-600" : "text-stone-500 hover:text-stone-900"}`}
-        >
-          Personal Room
-        </button>
       </div>
 
       <div className="space-y-4">
+        {isLoading && <p className="text-stone-500">Loading...</p>}
         {activeTab === "upcoming" && (
-          [
-            { title: "Q3 Product Strategy Sync", time: "10:00 AM - 11:30 AM", date: "Today", pax: 8 },
-            { title: "Design Review: Mobile App", time: "2:00 PM - 3:00 PM", date: "Today", pax: 4 },
-            { title: "Weekly Engineering Standup", time: "10:00 AM - 10:30 AM", date: "Tomorrow", pax: 12 },
-          ].map((meeting, i) => (
-            <Card key={i} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-lg bg-emerald-50 flex flex-col items-center justify-center text-emerald-700 shrink-0">
-                  <span className="text-[11px] font-semibold uppercase">{meeting.date === "Today" ? "TODAY" : "TMRW"}</span>
-                </div>
-                <div>
-                  <h3 className="font-medium text-stone-900 text-[16px] mb-1">{meeting.title}</h3>
-                  <div className="flex flex-wrap items-center gap-4 text-[13px] text-stone-500">
-                    <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.time}</span>
-                    <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {meeting.pax} Participants</span>
+          <>
+            {!isLoading && upcomingMeetings.length === 0 && <p className="text-stone-500">No upcoming meetings.</p>}
+            {upcomingMeetings.map((meeting) => (
+              <Card key={meeting.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                <div className="flex items-start gap-4">
+                  <div className={`w-12 h-12 rounded-full ${meeting.status === 'LIVE' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} flex items-center justify-center shrink-0`}>
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-stone-900 mb-1">{meeting.title}</h3>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-stone-500">
+                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.scheduledStart ? new Date(meeting.scheduledStart).toLocaleString() : 'Instant Meeting'}</span>
+                      <span className="flex items-center gap-1.5 font-mono text-stone-700">{meeting.joinCode}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button variant="secondary" className="h-9">Copy Link</Button>
-                <Button className="h-9">Start</Button>
-              </div>
-            </Card>
-          ))
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <Button variant="outline" className="flex-1 md:flex-none">Copy Link</Button>
+                  <Button className="flex-1 md:flex-none">Join Now</Button>
+                </div>
+              </Card>
+            ))}
+          </>
         )}
-
+        
         {activeTab === "past" && (
-          [
-            { title: "Marketing All Hands", time: "11:00 AM - 12:00 PM", date: "Yesterday" },
-            { title: "Client Discovery Call", time: "3:00 PM - 4:00 PM", date: "Oct 24" },
-          ].map((meeting, i) => (
-            <Card key={i} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group opacity-80 hover:opacity-100 transition-opacity">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-lg bg-stone-100 flex flex-col items-center justify-center text-stone-600 shrink-0">
-                  <span className="text-[11px] font-semibold uppercase">PAST</span>
-                </div>
-                <div>
-                  <h3 className="font-medium text-stone-900 text-[16px] mb-1">{meeting.title}</h3>
-                  <div className="flex flex-wrap items-center gap-4 text-[13px] text-stone-500">
-                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {meeting.date}</span>
-                    <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.time}</span>
+          <>
+            {!isLoading && pastMeetings.length === 0 && <p className="text-stone-500">No past meetings.</p>}
+            {pastMeetings.map((meeting) => (
+              <Card key={meeting.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group opacity-70 hover:opacity-100 transition-opacity">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center shrink-0">
+                    <Video className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-stone-900 mb-1">{meeting.title}</h3>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-stone-500">
+                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.endedAt ? new Date(meeting.endedAt).toLocaleDateString() : 'Ended'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button variant="secondary" className="h-9 text-stone-600">View Recording</Button>
-              </div>
-            </Card>
-          ))
-        )}
-
-        {activeTab === "personal" && (
-          <Card className="p-8 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 mb-4">
-              <Video className="w-8 h-8" />
-            </div>
-            <h2 className="text-[20px] font-semibold text-stone-900 tracking-tight mb-2">Sarah's Personal Meeting Room</h2>
-            <p className="text-[15px] text-stone-500 mb-8 max-w-md">Your personal meeting room is a permanently reserved virtual room that you can access with your Personal Meeting ID.</p>
-            
-            <div className="bg-stone-50 border border-stone-200 rounded-[8px] p-4 mb-8 flex items-center justify-between w-full max-w-sm">
-              <div className="font-mono text-[16px] text-stone-900 font-medium tracking-widest">
-                842-194-092
-              </div>
-              <Button variant="ghost" className="h-8 px-2 text-emerald-600 hover:text-emerald-700">
-                <Copy className="w-4 h-4 mr-1.5" /> Copy
-              </Button>
-            </div>
-
-            <div className="flex gap-3">
-              <Button className="px-8">Start Meeting</Button>
-              <Button variant="outline" className="px-8">Copy Invitation</Button>
-            </div>
-          </Card>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <Button variant="secondary" className="flex-1 md:flex-none">View Details</Button>
+                </div>
+              </Card>
+            ))}
+          </>
         )}
       </div>
     </div>
