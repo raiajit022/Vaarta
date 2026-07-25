@@ -35,6 +35,13 @@ public class AuthService {
     private final TokenService tokenService;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+
+    @org.springframework.beans.factory.annotation.Value("${app.user-service-url}")
+    private String userServiceUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${app.internal-key}")
+    private String internalKey;
 
     // ── Register ──────────────────────────────────────────────────────────
 
@@ -67,6 +74,26 @@ public class AuthService {
         evtRepository.save(evt);
 
         emailService.sendVerificationEmail(user.getEmail(), evt.getToken(), user.getFullName());
+        
+        try {
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("X-Internal-Key", internalKey);
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            
+            InitProfileRequest initReq = new InitProfileRequest(user.getId(), user.getFullName());
+            org.springframework.http.HttpEntity<InitProfileRequest> requestEntity = new org.springframework.http.HttpEntity<>(initReq, headers);
+            
+            restTemplate.postForEntity(userServiceUrl + "/api/users/internal/init", requestEntity, Void.class);
+            log.info("Initialized user profile in user-service for: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to initialize user profile for: {}", user.getEmail(), e);
+            // Non-fatal for auth service, but we should probably handle it or let it fail?
+            // If it fails, the user will be registered but won't have a profile. 
+            // In a real system, we'd use an outbox pattern or message queue.
+            // For now, let it be non-fatal or fail the transaction. Let's fail the transaction to be safe.
+            throw new RuntimeException("Failed to initialize user profile", e);
+        }
+        
         log.info("User registered: {}", user.getEmail());
     }
 
