@@ -3,6 +3,7 @@ import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Calendar, Video, Clock, Users, Search, Play, Phone, Mail, Settings, User, Bell, Shield, Copy, Plus, X } from "lucide-react";
+import { useAuthStore } from "../../../../store/useAuthStore";
 
 export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => void }) {
   const [activeTab, setActiveTab] = useState("upcoming");
@@ -258,8 +259,9 @@ export function ContactsView() {
 }
 
 export function SettingsView() {
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState("profile");
-  const [avatarUrl, setAvatarUrl] = React.useState<string | null>("https://i.pravatar.cc/150?u=a042581f4e29026704d");
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(user?.avatarUrl || null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleChangePhoto = () => {
@@ -287,7 +289,7 @@ export function SettingsView() {
                 <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border border-stone-200" />
               ) : (
                 <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-semibold">
-                  SJ
+                  {user?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
               )}
               <div className="space-y-3">
@@ -304,16 +306,16 @@ export function SettingsView() {
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-[13px] font-medium text-stone-700 mb-1.5">First Name</label>
-                  <Input defaultValue="Sarah" />
+                  <Input defaultValue={user?.fullName?.split(' ')[0] || ''} />
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Last Name</label>
-                  <Input defaultValue="Jenkins" />
+                  <Input defaultValue={user?.fullName?.split(' ').slice(1).join(' ') || ''} />
                 </div>
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Email Address</label>
-                <Input defaultValue="sarah.jenkins@vaarta.com" readOnly className="bg-stone-50 text-stone-500" />
+                <Input defaultValue={user?.email || ''} readOnly className="bg-stone-50 text-stone-500" />
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Personal Meeting ID</label>

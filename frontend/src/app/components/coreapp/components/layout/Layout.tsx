@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Home, Calendar, Video, Users, Settings, Search, Bell, ChevronDown } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { Input } from "../ui/Input";
+import { useAuthStore } from "../../../../store/useAuthStore";
 
 export function Sidebar({ currentView, setView }: { currentView: string, setView: (v: string) => void }) {
   const items = [
@@ -46,6 +47,9 @@ export function Sidebar({ currentView, setView }: { currentView: string, setView
 export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const { user } = useAuthStore();
+  const initial = user?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U';
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -103,7 +107,13 @@ export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
           className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-1 pr-2 rounded-full transition-colors"
           onClick={onAvatarClick}
         >
-          <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" className="w-8 h-8 rounded-full" />
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-[13px]">
+              {initial}
+            </div>
+          )}
           <ChevronDown className="w-4 h-4 text-stone-500" />
         </div>
       </div>

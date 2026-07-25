@@ -2,6 +2,7 @@ import React from "react";
 import { Plus, Video, Calendar, Clock, Users, ArrowRight, MoreHorizontal } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { useAuthStore } from "../../../../store/useAuthStore";
 
 export function DashboardView({
   onCreateMeeting,
@@ -12,10 +13,13 @@ export function DashboardView({
   onJoinMeeting: () => void;
   onScheduleMeeting: () => void;
 }) {
+  const { user } = useAuthStore();
+  const displayName = user?.fullName || user?.email.split('@')[0] || 'User';
+
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Good morning, Sarah.</h1>
+        <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Good morning, {displayName}.</h1>
         <p className="text-[15px] text-stone-500 leading-relaxed">You have 3 meetings scheduled for today.</p>
       </div>
 

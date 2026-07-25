@@ -8,19 +8,22 @@ import { RegisterScreen } from "./components/auth/RegisterScreen";
 import { ForgotScreen } from "./components/auth/ForgotScreen";
 import { CheckEmailScreen } from "./components/auth/CheckEmailScreen";
 import { ResetScreen } from "./components/auth/ResetScreen";
+import { VerifyEmailScreen } from "./components/auth/VerifyEmailScreen";
 
 import { LandingPage } from "./components/landing/LandingPage";
 import { CoreApp } from "./components/coreapp/App";
 
-// Default demo credentials — replace with real auth backend later.
-const DEFAULT_EMAIL = "raiajit@vaarta.com";
-const DEFAULT_PASSWORD = "vaarta";
+import { useAuthStore } from "./store/useAuthStore";
+import { authClient } from "./apiClient";
+
+type AuthMode = 'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'reset' | 'verify-email';
 
 export default function App() {
   const { isDark, setIsDark } = useTheme();
   
-  const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'reset'>('landing');
-  const [authenticated, setAuthenticated] = useState(false);
+  const { isAuthenticated, setAuth, logout } = useAuthStore();
+
+  const [authMode, setAuthMode] = useState<AuthMode>('landing');
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -32,6 +35,33 @@ export default function App() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [submitted, setSubmitted] = useState(false);
   const [timer, setTimer] = useState(0);
+
+  // URL Parameters for verify and reset flows
+  const [urlToken, setUrlToken] = useState<string | null>(null);
+
+  // Simple routing based on URL path and query string (since we're not using React Router yet)
+  useEffect(() => {
+    const path = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get('token');
+
+    if (path === '/verify-email') {
+      setUrlToken(token);
+      setAuthMode('verify-email');
+      // Clear URL so refreshing doesn't re-trigger
+      window.history.replaceState({}, document.title, "/");
+    } else if (path === '/reset-password') {
+      setUrlToken(token);
+      setAuthMode('reset');
+      window.history.replaceState({}, document.title, "/");
+    } else if (isAuthenticated) {
+      // If already authenticated and not on a special link, jump straight in
+      // but only if we are currently trying to show landing or login
+      if (authMode === 'landing' || authMode === 'login' || authMode === 'register') {
+         // No need to set authMode, `if (isAuthenticated)` handles the render
+      }
+    }
+  }, [isAuthenticated, authMode]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -81,13 +111,13 @@ export default function App() {
     return e;
   }
 
-  function handleSubmit(evt: React.FormEvent) {
+  async function handleSubmit(evt: React.FormEvent) {
     evt.preventDefault();
     let e = {};
     if (authMode === 'register') e = validateRegister();
     else if (authMode === 'forgot') e = validateForgot();
     else if (authMode === 'reset') e = validateReset();
-    else e = validateLogin();
+    else if (authMode === 'login') e = validateLogin();
 
     if (Object.keys(e).length > 0) {
       setErrors(e);
@@ -95,53 +125,67 @@ export default function App() {
     }
     setErrors({});
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      
-      if (authMode === 'forgot') {
+
+    try {
+      if (authMode === 'register') {
+        await authClient.post('/api/auth/register', {
+          email,
+          password,
+          fullName: name
+        });
+        setSubmitted(true);
+      } else if (authMode === 'login') {
+        const res = await authClient.post('/api/auth/login', {
+          email,
+          password
+        });
+        setAuth(res.data.accessToken, res.data.refreshToken, res.data.user);
+      } else if (authMode === 'forgot') {
+        await authClient.post('/api/auth/forgot-password', { email });
         setAuthMode('check-email');
         setTimer(30);
       } else if (authMode === 'reset') {
-        // Success state for reset -> Go back to login
-        setAuthMode('login');
-        setPassword("");
-        setConfirmPassword("");
-      } else if (authMode === 'login') {
-        // Verify demo credentials, then enter the CoreApp.
-        if (email === DEFAULT_EMAIL && password === DEFAULT_PASSWORD) {
-          setAuthenticated(true);
-        } else {
-          setErrors({ password: "Invalid email or password" });
-        }
-      } else {
-        // register success -> enter the CoreApp
-        setAuthenticated(true);
+        await authClient.post('/api/auth/reset-password', {
+          token: urlToken,
+          newPassword: password
+        });
+        switchMode('login');
+        setErrors({ success: "Password reset successfully. Please log in." });
       }
-    }, 1200);
+    } catch (err: any) {
+      if (err.response?.data?.fields) {
+        setErrors(err.response.data.fields);
+      } else {
+        setErrors({ 
+          general: err.response?.data?.message || "An unexpected error occurred. Please try again." 
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function switchMode(mode: 'landing' | 'login' | 'register' | 'forgot') {
+  function switchMode(mode: AuthMode) {
     setAuthMode(mode);
     setErrors({});
     setSubmitted(false);
     setConfirmPassword("");
-    // Prefill demo credentials on the login screen for convenience.
     if (mode === 'login') {
-      setEmail(DEFAULT_EMAIL);
-      setPassword(DEFAULT_PASSWORD);
+      // Clear password but keep email if already typed
+      setPassword("");
     } else {
       setPassword("");
     }
   }
 
-  if (authenticated) {
+  // If fully authenticated, render the main app
+  if (isAuthenticated) {
     return (
       <CoreApp
         onSignOut={() => {
-          setAuthenticated(false);
-          setAuthMode('login');
-          setEmail(DEFAULT_EMAIL);
-          setPassword(DEFAULT_PASSWORD);
+          logout();
+          authClient.post('/api/auth/logout').catch(() => {}); // fire and forget (optional if backend adds logout)
+          switchMode('login');
         }}
       />
     );
@@ -169,7 +213,6 @@ export default function App() {
             <VaartaLogo />
           </div>
           <div className="hidden lg:block cursor-pointer" onClick={() => switchMode('landing')}>
-            {/* Added a subtle back to home button for desktop just in case */}
             <span className="text-[13px] font-medium text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors">← Back to website</span>
           </div>
           <button
@@ -186,7 +229,20 @@ export default function App() {
             <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[16px] shadow-[0_8px_30px_rgb(28,25,23,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] overflow-hidden">
               <div className="p-8">
                 
-                {authMode === 'check-email' ? (
+                {errors.general && (
+                  <div className="mb-6 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md text-red-600 dark:text-red-400 text-sm">
+                    {errors.general}
+                  </div>
+                )}
+                {errors.success && (
+                  <div className="mb-6 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-md text-emerald-600 dark:text-emerald-400 text-sm">
+                    {errors.success}
+                  </div>
+                )}
+
+                {authMode === 'verify-email' ? (
+                  <VerifyEmailScreen token={urlToken} switchMode={switchMode} />
+                ) : authMode === 'check-email' ? (
                   <CheckEmailScreen
                     email={email}
                     timer={timer}
@@ -298,7 +354,7 @@ export default function App() {
                 )}
               </div>
 
-              {!submitted && authMode !== 'check-email' && (
+              {!submitted && authMode !== 'check-email' && authMode !== 'verify-email' && (
                 <div className="bg-stone-50/60 dark:bg-[#211D17]/50 border-t border-stone-100 dark:border-stone-800/80 p-8 pt-6 flex flex-col items-center gap-6">
                   {(authMode === 'forgot' || authMode === 'reset') ? (
                     <button
