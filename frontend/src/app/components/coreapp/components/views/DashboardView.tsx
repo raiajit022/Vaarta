@@ -4,6 +4,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
+import { MeetingDetailsModal } from "./Modals";
 
 /**
  * Renders the main dashboard for a logged-in user.
@@ -33,6 +34,8 @@ export function DashboardView({
 
   const upcomingMeetings = meetings.filter(m => m.status === 'SCHEDULED' || m.status === 'LIVE');
   const pastMeetings = meetings.filter(m => m.status === 'ENDED' || m.status === 'CANCELLED');
+
+  const [selectedMeeting, setSelectedMeeting] = React.useState<any>(null);
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
@@ -115,7 +118,11 @@ export function DashboardView({
             <div className="divide-y divide-stone-100">
               {pastMeetings.length === 0 && <div className="p-4 text-sm text-stone-500 text-center">No recent activity</div>}
               {pastMeetings.slice(0, 4).map((m) => (
-                <div key={m.id} className="p-4 flex gap-3 hover:bg-stone-50 transition-colors">
+                <div 
+                  key={m.id} 
+                  className="p-4 flex gap-3 hover:bg-stone-50 transition-colors cursor-pointer"
+                  onClick={() => setSelectedMeeting(m)}
+                >
                   <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0">
                     <Video className="w-4 h-4 text-stone-500" />
                   </div>
@@ -134,6 +141,10 @@ export function DashboardView({
           </Card>
         </div>
       </div>
+      
+      {selectedMeeting && (
+        <MeetingDetailsModal meeting={selectedMeeting} onClose={() => setSelectedMeeting(null)} />
+      )}
     </div>
   );
 }

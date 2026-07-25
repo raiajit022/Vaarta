@@ -17,6 +17,9 @@ public class MeetingResponse {
     private ZonedDateTime startedAt;
     private ZonedDateTime endedAt;
     private ZonedDateTime createdAt;
+    private String summary;
+
+    public MeetingResponse() {}
 
     // Getters and Setters
     public UUID getId() { return id; }
@@ -37,6 +40,9 @@ public class MeetingResponse {
     public void setEndedAt(ZonedDateTime endedAt) { this.endedAt = endedAt; }
     public ZonedDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(ZonedDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
 
     public static MeetingResponse from(com.vaarta.meeting.model.Meeting meeting) {
         MeetingResponse response = new MeetingResponse();
@@ -49,6 +55,7 @@ public class MeetingResponse {
         response.setStartedAt(meeting.getStartedAt());
         response.setEndedAt(meeting.getEndedAt());
         response.setCreatedAt(meeting.getCreatedAt());
+        response.setSummary(meeting.getSummary());
         return response;
     }
 }

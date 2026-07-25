@@ -70,6 +70,16 @@ services:
       - meeting-service
     env_file: .env
 
+  ai-service:
+    build: ./ai-service
+    container_name: vaarta-ai-service
+    ports:
+      - "8090:8000"
+    depends_on:
+      - meeting-service
+      - notification-service
+    env_file: .env
+
   livekit:
     image: livekit/livekit-server:latest
     container_name: vaarta-livekit

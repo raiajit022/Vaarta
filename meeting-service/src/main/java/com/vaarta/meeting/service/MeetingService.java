@@ -29,6 +29,7 @@ public class MeetingService {
     private final MeetingParticipantRepository participantRepository;
     private final JoinCodeGenerator joinCodeGenerator;
     private final org.springframework.web.client.RestClient restClient;
+    private final org.springframework.web.client.RestClient aiRestClient;
 
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url}")
     private String frontendUrl;
@@ -38,12 +39,17 @@ public class MeetingService {
                           JoinCodeGenerator joinCodeGenerator,
                           org.springframework.web.client.RestClient.Builder restClientBuilder,
                           @org.springframework.beans.factory.annotation.Value("${app.notification-service-url}") String notificationServiceUrl,
+                          @org.springframework.beans.factory.annotation.Value("${app.ai-service-url}") String aiServiceUrl,
                           @org.springframework.beans.factory.annotation.Value("${app.internal-api-key}") String internalApiKey) {
         this.meetingRepository = meetingRepository;
         this.participantRepository = participantRepository;
         this.joinCodeGenerator = joinCodeGenerator;
-        this.restClient = restClientBuilder
+        this.restClient = restClientBuilder.clone()
                 .baseUrl(notificationServiceUrl)
+                .defaultHeader("X-Internal-Key", internalApiKey)
+                .build();
+        this.aiRestClient = restClientBuilder.clone()
+                .baseUrl(aiServiceUrl)
                 .defaultHeader("X-Internal-Key", internalApiKey)
                 .build();
     }
@@ -186,12 +192,47 @@ public class MeetingService {
                 .orElseThrow(() -> new RuntimeException("Meeting not found"));
 
         if (!meeting.getHostId().equals(userId)) {
-            throw new RuntimeException("Only host can end the meeting");
+            throw new RuntimeException("Only the host can end the meeting");
         }
 
         meeting.setStatus(MeetingStatus.ENDED);
         meeting.setEndedAt(ZonedDateTime.now());
         meetingRepository.save(meeting);
+    }
+
+    @Transactional
+    public MeetingResponse generateSummary(UUID id, UUID userId) {
+        Meeting meeting = meetingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        // Anyone who was a participant can generate summary, or just host.
+        // Let's check participant
+        participantRepository.findByMeetingIdAndUserId(id, userId)
+                .orElseThrow(() -> new RuntimeException("User is not a participant of this meeting"));
+
+        if (meeting.getStatus() != MeetingStatus.ENDED) {
+            throw new RuntimeException("Can only summarize completed meetings");
+        }
+
+        try {
+            java.util.Map<String, Object> response = aiRestClient.post()
+                    .uri("/agents/invoke")
+                    .body(java.util.Map.of(
+                            "agentType", "SUMMARIZER",
+                            "meetingId", id.toString()
+                    ))
+                    .retrieve()
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+
+            if (response != null && response.containsKey("summary")) {
+                meeting.setSummary((String) response.get("summary"));
+                meeting = meetingRepository.save(meeting);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate summary: " + e.getMessage());
+        }
+
+        return MeetingResponse.from(meeting);
     }
 
     private MeetingResponse mapToResponse(Meeting meeting) {

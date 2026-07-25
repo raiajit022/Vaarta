@@ -84,7 +84,18 @@ public class MeetingController {
      */
     @PostMapping("/{id}/end")
     public ResponseEntity<Void> endMeeting(@PathVariable UUID id) {
-        meetingService.endMeeting(id, getCurrentUserId());
+        UUID userId = getCurrentUserId();
+        meetingService.endMeeting(id, userId);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Generates a summary for the meeting using the AI service.
+     */
+    @PostMapping("/{id}/summary:generate")
+    public ResponseEntity<MeetingResponse> generateSummary(@PathVariable UUID id) {
+        UUID userId = getCurrentUserId();
+        MeetingResponse response = meetingService.generateSummary(id, userId);
+        return ResponseEntity.ok(response);
     }
 }

@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtValidationFilter jwtValidationFilter;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,12 +32,13 @@ public class SecurityConfig {
             .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/users/internal/**").permitAll() // Protected by internal key in the controller
+                    .requestMatchers("/internal/**").permitAll() // Protected by internal key filter
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtValidationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtValidationFilter, InternalApiKeyFilter.class);
 
         return http.build();
     }

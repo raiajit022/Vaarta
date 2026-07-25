@@ -184,3 +184,73 @@ export function MeetingCreatedModal({ meeting, onClose, onStart }: { meeting: an
     </div>
   );
 }
+
+export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClose: () => void }) {
+  const { generateSummary, isLoading } = useMeetingStore();
+  const [isGenerating, setIsGenerating] = React.useState(false);
+
+  const handleGenerateSummary = async () => {
+    try {
+      setIsGenerating(true);
+      await generateSummary(meeting.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
+      <Card className="relative w-full max-w-lg shadow-[0_20px_60px_rgb(0,0,0,0.12)] max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-stone-100">
+          <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Meeting Details</h2>
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto space-y-5 flex-grow">
+          <div>
+            <label className="block text-[13px] font-medium text-stone-500 mb-1">Title</label>
+            <p className="text-[15px] text-stone-900 font-medium">{meeting.title}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[13px] font-medium text-stone-500 mb-1">Status</label>
+              <p className="text-[14px] text-stone-900">{meeting.status}</p>
+            </div>
+            <div>
+              <label className="block text-[13px] font-medium text-stone-500 mb-1">Date</label>
+              <p className="text-[14px] text-stone-900">
+                {meeting.startedAt ? new Date(meeting.startedAt).toLocaleString() : 'N/A'}
+              </p>
+            </div>
+          </div>
+          <div className="pt-4 border-t border-stone-100">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[13px] font-medium text-stone-900">AI Summary</label>
+              {meeting.status === 'ENDED' && !meeting.summary && (
+                <Button variant="outline" size="sm" onClick={handleGenerateSummary} disabled={isGenerating}>
+                  {isGenerating ? 'Generating...' : 'Generate Summary'}
+                </Button>
+              )}
+            </div>
+            {meeting.summary ? (
+              <div className="bg-stone-50 p-4 rounded-lg text-[14px] text-stone-700 leading-relaxed whitespace-pre-wrap">
+                {meeting.summary}
+              </div>
+            ) : (
+              <div className="text-[13px] text-stone-500 italic">
+                {meeting.status === 'ENDED' ? 'No summary generated yet.' : 'Summary will be available after the meeting ends.'}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="p-6 border-t border-stone-100 flex justify-end">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}

@@ -14,6 +14,7 @@ export interface Meeting {
     startedAt: string | null;
     endedAt: string | null;
     createdAt: string;
+    summary?: string;
 }
 
 /**
@@ -34,6 +35,9 @@ interface MeetingStore {
     
     /** Joins an existing meeting using its 9-character join code. */
     joinMeeting: (joinCode: string) => Promise<Meeting>;
+
+    /** Generates the summary for an ended meeting */
+    generateSummary: (meetingId: string) => Promise<Meeting>;
     
     /** Retrieves the LiveKit JWT and WebSocket URL required to connect to a meeting room. */
     fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
@@ -94,6 +98,21 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             return response.data; // { token, livekitUrl }
         } catch (error: any) {
             console.error("Failed to fetch livekit token", error);
+            throw error;
+        }
+    },
+    generateSummary: async (meetingId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await meetingClient.post(`/api/meetings/${meetingId}/summary:generate`);
+            // Update the meeting in local state
+            set((state) => ({
+                meetings: state.meetings.map(m => m.id === meetingId ? response.data : m),
+                isLoading: false
+            }));
+            return response.data;
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || 'Failed to generate summary', isLoading: false });
             throw error;
         }
     }

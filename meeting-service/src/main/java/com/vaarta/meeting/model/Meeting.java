@@ -40,6 +40,9 @@ public class Meeting {
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
 
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
     public Meeting() {
     }
 
@@ -113,5 +116,13 @@ public class Meeting {
 
     public void setCreatedAt(ZonedDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 }
