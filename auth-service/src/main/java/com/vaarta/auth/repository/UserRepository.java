@@ -1,5 +1,9 @@
 package com.vaarta.auth.repository;
 
+/**
+ * Repository interface for managing {@link com.vaarta.auth.model.User} entities.
+ */
+
 import com.vaarta.auth.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 

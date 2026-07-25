@@ -1,5 +1,9 @@
 package com.vaarta.auth.repository;
 
+/**
+ * Repository interface for managing {@link com.vaarta.auth.model.EmailVerificationToken} entities.
+ */
+
 import com.vaarta.auth.model.EmailVerificationToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

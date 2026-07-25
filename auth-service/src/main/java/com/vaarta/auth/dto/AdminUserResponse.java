@@ -1,5 +1,9 @@
 package com.vaarta.auth.dto;
 
+/**
+ * Data Transfer Object representing a user's details for administrative purposes.
+ */
+
 import com.vaarta.auth.model.Role;
 import com.vaarta.auth.model.User;
 
