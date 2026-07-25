@@ -1,10 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { Video, Mic, Settings, ChevronDown, Check, Globe } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
+import { useMeetingStore } from "../../../../store/useMeetingStore";
 
 export function JoinMeetingView({ onJoin }: { onJoin: () => void }) {
+  const [joinCode, setJoinCode] = useState("");
+  const { joinMeeting, isLoading, error } = useMeetingStore();
+
+  const handleJoin = async () => {
+    if (!joinCode.trim()) return;
+    try {
+      await joinMeeting(joinCode.trim());
+      onJoin();
+    } catch (e) {
+      console.error("Failed to join meeting", e);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center p-6 relative">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
@@ -23,6 +37,8 @@ export function JoinMeetingView({ onJoin }: { onJoin: () => void }) {
           <div>
             <Input 
               placeholder="e.g. 123-456-789" 
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
               className="h-14 text-center font-mono text-[18px] tracking-[0.2em]" 
             />
           </div>
@@ -35,9 +51,16 @@ export function JoinMeetingView({ onJoin }: { onJoin: () => void }) {
             </div>
             <ChevronDown className="w-4 h-4 text-stone-400" />
           </div>
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </div>
 
-        <Button className="w-full h-12 text-[15px]" onClick={onJoin}>Join Meeting</Button>
+        <Button 
+          className="w-full h-12 text-[15px]" 
+          onClick={handleJoin}
+          disabled={isLoading || !joinCode.trim()}
+        >
+          {isLoading ? "Joining..." : "Join Meeting"}
+        </Button>
       </Card>
     </div>
   );
