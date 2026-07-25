@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { useAuthStore } from './store/useAuthStore';
 
-// Create an Axios instance configured for the auth service
+/**
+ * Axios client instance for interacting with the Auth Service.
+ */
 export const authClient = axios.create({
   baseURL: import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8081',
   headers: {
@@ -9,7 +11,9 @@ export const authClient = axios.create({
   },
 });
 
-// Add a request interceptor to attach the JWT token
+/**
+ * Request interceptor to automatically attach the JWT access token to outbound requests.
+ */
 authClient.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().accessToken;
@@ -21,9 +25,8 @@ authClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Flag to prevent multiple concurrent refresh requests
 let isRefreshing = false;
-// Queue of failed requests to retry after token refresh
+/** Queue of failed requests awaiting token refresh. */
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
   reject: (reason?: any) => void;
@@ -40,7 +43,10 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Add a response interceptor to handle 401s (token expiry)
+/**
+ * Response interceptor that handles 401 Unauthorized errors by attempting to silently
+ * refresh the access token and retrying the original request.
+ */
 authClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -104,7 +110,9 @@ authClient.interceptors.response.use(
   }
 );
 
-// Create an Axios instance configured for the user service
+/**
+ * Axios client instance for interacting with the User Service.
+ */
 export const userClient = axios.create({
   baseURL: import.meta.env.VITE_USER_API_URL || 'http://localhost:8082',
   headers: {
@@ -176,7 +184,9 @@ userClient.interceptors.response.use(
   }
 );
 
-// Create an Axios instance configured for the meeting service
+/**
+ * Axios client instance for interacting with the Meeting Service.
+ */
 export const meetingClient = axios.create({
   baseURL: import.meta.env.VITE_MEETING_API_URL || 'http://localhost:8083',
   headers: {

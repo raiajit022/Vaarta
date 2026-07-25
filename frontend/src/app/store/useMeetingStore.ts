@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { meetingClient } from '../apiClient';
 
+/**
+ * Represents a meeting entity from the backend.
+ */
 export interface Meeting {
     id: string;
     title: string;
@@ -13,13 +16,26 @@ export interface Meeting {
     createdAt: string;
 }
 
+/**
+ * Zustand store for managing the user's meetings state.
+ * Handles fetching, creating, and joining meetings, as well as obtaining
+ * LiveKit access tokens for active sessions.
+ */
 interface MeetingStore {
     meetings: Meeting[];
     isLoading: boolean;
     error: string | null;
+    
+    /** Fetches the list of meetings the current user is a part of. */
     fetchMyMeetings: () => Promise<void>;
+    
+    /** Creates a new meeting and optionally invites participants via email. */
     createMeeting: (title: string, scheduledStart?: string, participantEmails?: string[]) => Promise<Meeting>;
+    
+    /** Joins an existing meeting using its 9-character join code. */
     joinMeeting: (joinCode: string) => Promise<Meeting>;
+    
+    /** Retrieves the LiveKit JWT and WebSocket URL required to connect to a meeting room. */
     fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
 }
 
@@ -58,7 +74,7 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await meetingClient.post(`/api/meetings/join/${joinCode}`);
-            // if we just joined a new meeting, refresh our meetings list or just add it if it's not there
+            // If we successfully joined a new meeting, append it to our local state cache
             set((state) => {
                 const existing = state.meetings.find(m => m.id === response.data.id);
                 if (!existing) {

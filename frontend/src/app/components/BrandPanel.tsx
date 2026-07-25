@@ -1,6 +1,10 @@
 import { Star } from "lucide-react";
 import { VaartaLogo } from "./VaartaLogo";
 
+/**
+ * A decorative branding panel used in authentication screens.
+ * Contains marketing copy, social proof, and stylized backgrounds.
+ */
 export function BrandPanel() {
   return (
     <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 bg-gradient-to-br from-[#065f46] via-[#047857] to-[#052e26]">

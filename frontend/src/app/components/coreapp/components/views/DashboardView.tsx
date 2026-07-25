@@ -5,6 +5,15 @@ import { Card } from "../ui/Card";
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 
+/**
+ * Renders the main dashboard for a logged-in user.
+ * Displays upcoming meetings, recent activity, and provides quick actions
+ * for creating, joining, or scheduling a meeting.
+ *
+ * @param props.onCreateMeeting Callback to open the 'Create Meeting' modal.
+ * @param props.onJoinMeeting Callback to open the 'Join Meeting' view.
+ * @param props.onScheduleMeeting Callback to open the 'Schedule Meeting' modal.
+ */
 export function DashboardView({
   onCreateMeeting,
   onJoinMeeting,

@@ -2,31 +2,42 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { userClient } from '../apiClient';
 
+/**
+ * Represents the authenticated user's profile and JWT claims.
+ */
 export interface UserInfo {
   id: string;
   email: string;
   fullName: string | null;
   role: string;
   emailVerified: boolean;
-  // User Service fields
   avatarUrl?: string;
   organization?: string;
   timezone?: string;
 }
 
+/**
+ * Zustand store state and actions for managing authentication.
+ */
 interface AuthState {
-  // Tokens
   accessToken: string | null;
   refreshToken: string | null;
-  // User Data
   user: UserInfo | null;
   isAuthenticated: boolean;
 
-  // Actions
+  /** Updates the entire authentication state upon successful login/registration. */
   setAuth: (accessToken: string, refreshToken: string, user: UserInfo) => void;
+  
+  /** Updates the JWT tokens, typically used after a token refresh. */
   setTokens: (accessToken: string, refreshToken: string) => void;
+  
+  /** Updates the user profile data. */
   setUser: (user: UserInfo) => void;
+  
+  /** Clears the authentication state. */
   logout: () => void;
+  
+  /** Fetches extended profile data from the user-service and merges it into the local state. */
   fetchProfile: () => Promise<void>;
 }
 
@@ -55,7 +66,6 @@ export const useAuthStore = create<AuthState>()(
         }),
         
       fetchProfile: async () => {
-        const state = set; // zustand's set function
         try {
           const response = await userClient.get('/api/users/me');
           const profile = response.data;
@@ -79,7 +89,7 @@ export const useAuthStore = create<AuthState>()(
       }
     }),
     {
-      name: 'vaarta-auth-storage', // name of item in the storage (must be unique)
+      name: 'vaarta-auth-storage',
       partialize: (state) => ({ 
         accessToken: state.accessToken, 
         refreshToken: state.refreshToken, 

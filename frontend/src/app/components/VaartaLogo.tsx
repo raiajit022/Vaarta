@@ -1,5 +1,10 @@
 import { Video } from "lucide-react";
 
+/**
+ * Reusable component that displays the Vaarta application logo.
+ * 
+ * @param props.light Determines if the text should be forced to white, typically used on dark backgrounds.
+ */
 export function VaartaLogo({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
