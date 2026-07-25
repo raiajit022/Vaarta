@@ -49,7 +49,7 @@ public class JwtValidationFilter extends OncePerRequestFilter {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            String userId = claims.getSubject(); // UUID string
+            String userId = claims.get("userId", String.class); // UUID string
             String role = claims.get("role", String.class);
             if (role == null) role = "ROLE_USER";
 
