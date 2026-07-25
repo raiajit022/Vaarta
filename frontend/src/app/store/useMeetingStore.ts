@@ -18,7 +18,7 @@ interface MeetingStore {
     isLoading: boolean;
     error: string | null;
     fetchMyMeetings: () => Promise<void>;
-    createMeeting: (title: string, scheduledStart?: string) => Promise<Meeting>;
+    createMeeting: (title: string, scheduledStart?: string, participantEmails?: string[]) => Promise<Meeting>;
     joinMeeting: (joinCode: string) => Promise<Meeting>;
 }
 
@@ -35,12 +35,13 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             set({ error: error.response?.data?.message || 'Failed to fetch meetings', isLoading: false });
         }
     },
-    createMeeting: async (title: string, scheduledStart?: string) => {
+    createMeeting: async (title: string, scheduledStart?: string, participantEmails?: string[]) => {
         set({ isLoading: true, error: null });
         try {
             const response = await meetingClient.post('/api/meetings', {
                 title,
-                scheduledStart
+                scheduledStart,
+                participantEmails
             });
             set((state) => ({ 
                 meetings: [response.data, ...state.meetings],

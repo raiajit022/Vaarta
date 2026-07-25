@@ -65,6 +65,24 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
+      NOTIFICATION_SERVICE_URL: http://notification-service:8080
+      INTERNAL_API_KEY: internal_dev_key_123
+
+  notification-service:
+    build: ./notification-service
+    container_name: vaarta-notification-service
+    ports:
+      - "8084:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: ./notification-service/.env
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/notifications
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      INTERNAL_API_KEY: internal_dev_key_123
+      # We need RESEND_API_KEY to be in .env
 
   frontend:
     build: ./frontend
