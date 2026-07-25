@@ -45,6 +45,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean emailVerified = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean disabled = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -91,7 +95,7 @@ public class User implements UserDetails {
     @Override
     public boolean isCredentialsNonExpired() { return true; }
 
-    /** Only verified accounts can authenticate. */
+    /** Only verified and non-disabled accounts can authenticate. */
     @Override
-    public boolean isEnabled() { return emailVerified; }
+    public boolean isEnabled() { return emailVerified && !disabled; }
 }

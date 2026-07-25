@@ -51,7 +51,11 @@ public class JwtValidationFilter extends OncePerRequestFilter {
 
             String userId = claims.get("userId", String.class); // UUID string
             String role = claims.get("role", String.class);
-            if (role == null) role = "ROLE_USER";
+            if (role == null) {
+                role = "ROLE_USER";
+            } else if (!role.startsWith("ROLE_")) {
+                role = "ROLE_" + role;
+            }
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userId, // Using userId as principal

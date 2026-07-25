@@ -67,6 +67,8 @@ public class SecurityConfig {
                     ).permitAll()
                     // Actuator health check — public (for Docker health probes)
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                    // Admin endpoints require ADMIN role
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     // Everything else requires a valid JWT
                     .anyRequest().authenticated()
             )

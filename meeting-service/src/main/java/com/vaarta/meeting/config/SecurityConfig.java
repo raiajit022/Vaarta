@@ -27,6 +27,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/users/internal/**").permitAll() // Protected by internal key in the controller
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             )
             .addFilterBefore(jwtValidationFilter, UsernamePasswordAuthenticationFilter.class);

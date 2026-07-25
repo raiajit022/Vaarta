@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Home, Calendar, Video, Users, Settings, Search, Bell, ChevronDown } from "lucide-react";
+import { Home, Calendar, Video, Users, Settings, Search, Bell, ChevronDown, Shield } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { Input } from "../ui/Input";
 import { useAuthStore } from "../../../../store/useAuthStore";
 
 export function Sidebar({ currentView, setView }: { currentView: string, setView: (v: string) => void }) {
+  const { user } = useAuthStore();
+  
   const items = [
     { id: "dashboard", icon: Home, label: "Home" },
     { id: "meetings", icon: Calendar, label: "Meetings" },
@@ -12,6 +14,10 @@ export function Sidebar({ currentView, setView }: { currentView: string, setView
     { id: "contacts", icon: Users, label: "Contacts" },
     { id: "settings", icon: Settings, label: "Settings" },
   ];
+
+  if (user?.role === 'ADMIN') {
+    items.push({ id: "admin-users", icon: Shield, label: "Admin Portal" });
+  }
 
   return (
     <div className="w-64 border-r border-stone-200 bg-[#faf9f7] h-screen flex flex-col relative z-10">

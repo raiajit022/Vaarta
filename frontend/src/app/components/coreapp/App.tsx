@@ -4,6 +4,9 @@ import { DashboardView } from "./components/views/DashboardView";
 import { CreateMeetingModal, MeetingCreatedModal, ScheduleMeetingModal } from "./components/views/Modals";
 import { JoinMeetingView, PreCallDeviceCheckView, WaitingRoomGuestView, WaitingRoomHostView } from "./components/views/MeetingViews";
 import { MeetingsView, RecordingsView, ContactsView, SettingsView } from "./components/views/OtherViews";
+import { AdminLayout } from "../admin/AdminLayout";
+import { AdminUsersPage } from "../admin/AdminUsersPage";
+import { AdminMeetingsPage } from "../admin/AdminMeetingsPage";
 import { useAuthStore } from "../../store/useAuthStore";
 
 export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
@@ -108,6 +111,18 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
               <WaitingRoomHostView onAdmitAll={() => setCurrentView("dashboard")} />
             </div>
           </div>
+        );
+      case "admin-users":
+        return (
+          <AdminLayout currentRoute={currentView} onNavigate={setCurrentView}>
+            <AdminUsersPage />
+          </AdminLayout>
+        );
+      case "admin-meetings":
+        return (
+          <AdminLayout currentRoute={currentView} onNavigate={setCurrentView}>
+            <AdminMeetingsPage />
+          </AdminLayout>
         );
       default:
         return null;
