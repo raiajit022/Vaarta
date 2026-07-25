@@ -1,13 +1,8 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: vaarta-postgres
-    environment:
-      POSTGRES_DB: auth
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+    env_file: .env
     ports:
       - "5432:5432"
     volumes:
@@ -26,16 +21,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file: ./auth-service/.env
-    # Fallback env vars if .env is missing
-    environment:
-      DB_URL: jdbc:postgresql://postgres:5432/auth
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
-      FRONTEND_URL: http://localhost:3000
-      USER_SERVICE_URL: http://user-service:8080
-      AUTH_SERVICE_INTERNAL_KEY: internal_dev_key_123
+    env_file: .env
 
   user-service:
     build: ./user-service
@@ -45,12 +31,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DB_URL: jdbc:postgresql://postgres:5432/auth
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
-      AUTH_SERVICE_INTERNAL_KEY: internal_dev_key_123
+    env_file: .env
 
   meeting-service:
     build: ./meeting-service
@@ -60,13 +41,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DB_URL: jdbc:postgresql://postgres:5432/meetings
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
-      NOTIFICATION_SERVICE_URL: http://notification-service:8080
-      INTERNAL_API_KEY: internal_dev_key_123
+    env_file: .env
 
   notification-service:
     build: ./notification-service
@@ -76,16 +51,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file: ./notification-service/.env
-    environment:
-      DB_URL: jdbc:postgresql://postgres:5432/notifications
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      INTERNAL_API_KEY: internal_dev_key_123
-      # We need RESEND_API_KEY to be in .env
+    env_file: .env
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        - VITE_AUTH_API_URL=${VITE_AUTH_API_URL}
+        - VITE_USER_API_URL=${VITE_USER_API_URL}
+        - VITE_MEETING_API_URL=${VITE_MEETING_API_URL}
+        - VITE_LIVEKIT_URL=${VITE_LIVEKIT_URL}
     container_name: vaarta-frontend
     ports:
       - "3000:80"
@@ -93,11 +68,19 @@ services:
       - auth-service
       - user-service
       - meeting-service
-    # Provide the API URLs to the Vite build process inside Docker
+    env_file: .env
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: vaarta-livekit
+    command: --dev
+    ports:
+      - "7880:7880"   # HTTP/WebSocket
+      - "7881:7881"   # RTC TCP
+      - "50000-50100:50000-50100/udp"
+    # LiveKit requires a very specific format for keys with a space
     environment:
-      - VITE_AUTH_API_URL=http://localhost:8081
-      - VITE_USER_API_URL=http://localhost:8082
-      - VITE_MEETING_API_URL=http://localhost:8083
+      - "LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
 
 volumes:
   pgdata:

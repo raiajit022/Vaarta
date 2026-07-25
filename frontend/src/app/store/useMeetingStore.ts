@@ -20,6 +20,7 @@ interface MeetingStore {
     fetchMyMeetings: () => Promise<void>;
     createMeeting: (title: string, scheduledStart?: string, participantEmails?: string[]) => Promise<Meeting>;
     joinMeeting: (joinCode: string) => Promise<Meeting>;
+    fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
 }
 
 export const useMeetingStore = create<MeetingStore>((set) => ({
@@ -68,6 +69,15 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             return response.data;
         } catch (error: any) {
             set({ error: error.response?.data?.message || 'Failed to join meeting', isLoading: false });
+            throw error;
+        }
+    },
+    fetchLiveKitToken: async (meetingId: string) => {
+        try {
+            const response = await meetingClient.get(`/api/meetings/${meetingId}/livekit-token`);
+            return response.data; // { token, livekitUrl }
+        } catch (error: any) {
+            console.error("Failed to fetch livekit token", error);
             throw error;
         }
     }
