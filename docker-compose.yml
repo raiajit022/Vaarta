@@ -34,6 +34,23 @@ services:
       DB_PASSWORD: postgres
       JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
       FRONTEND_URL: http://localhost:3000
+      USER_SERVICE_URL: http://user-service:8080
+      AUTH_SERVICE_INTERNAL_KEY: internal_dev_key_123
+
+  user-service:
+    build: ./user-service
+    container_name: vaarta-user-service
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/auth
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
+      AUTH_SERVICE_INTERNAL_KEY: internal_dev_key_123
 
   frontend:
     build: ./frontend
@@ -42,9 +59,11 @@ services:
       - "3000:80"
     depends_on:
       - auth-service
-    # Provide the auth API URL to the Vite build process inside Docker
+      - user-service
+    # Provide the API URLs to the Vite build process inside Docker
     environment:
       - VITE_AUTH_API_URL=http://localhost:8081
+      - VITE_USER_API_URL=http://localhost:8082
 
 volumes:
   pgdata:

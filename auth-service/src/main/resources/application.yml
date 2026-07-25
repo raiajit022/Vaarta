@@ -36,6 +36,8 @@ resend:
 # ── Application ──────────────────────────────────────────────────────────────
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  user-service-url: ${USER_SERVICE_URL:http://localhost:8082}
+  internal-key: ${AUTH_SERVICE_INTERNAL_KEY:internal_dev_key_123}
 
 # ── Actuator ─────────────────────────────────────────────────────────────────
 management:

@@ -1,15 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar, TopNav } from "./components/layout/Layout";
 import { DashboardView } from "./components/views/DashboardView";
 import { CreateMeetingModal, MeetingCreatedModal, ScheduleMeetingModal } from "./components/views/Modals";
 import { JoinMeetingView, PreCallDeviceCheckView, WaitingRoomGuestView, WaitingRoomHostView } from "./components/views/MeetingViews";
 import { MeetingsView, RecordingsView, ContactsView, SettingsView } from "./components/views/OtherViews";
+import { useAuthStore } from "../../store/useAuthStore";
 
 export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
   const [currentView, setCurrentView] = useState("dashboard"); // dashboard, meetings, recordings, contacts, settings, join, pre-call, waiting-guest, waiting-host
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMeetingCreatedModalOpen, setIsMeetingCreatedModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const { fetchProfile } = useAuthStore();
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleCreateMeeting = () => {
     setIsCreateModalOpen(true);

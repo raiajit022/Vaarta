@@ -259,22 +259,45 @@ export function ContactsView() {
 }
 
 export function SettingsView() {
-  const { user } = useAuthStore();
+  const { user, fetchProfile } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState("profile");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(user?.avatarUrl || null);
+  const [firstName, setFirstName] = React.useState(user?.fullName?.split(' ')[0] || '');
+  const [lastName, setLastName] = React.useState(user?.fullName?.split(' ').slice(1).join(' ') || '');
+  const [organization, setOrganization] = React.useState(user?.organization || '');
+  const [timezone, setTimezone] = React.useState(user?.timezone || 'Asia/Kolkata');
+  const [isSaving, setIsSaving] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleChangePhoto = () => {
-    // Open the hidden file picker
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+    // We will just prompt for a URL for now to simplify
+    const url = window.prompt("Enter image URL for your avatar:", avatarUrl || "");
+    if (url) {
+      setAvatarUrl(url);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      setAvatarUrl(url);
+  const handleRemovePhoto = () => {
+    setAvatarUrl(null);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { userClient } = await import('../../../../apiClient');
+      await userClient.put('/api/users/me', {
+        displayName: `${firstName} ${lastName}`.trim(),
+        avatarUrl,
+        organization,
+        timezone,
+      });
+      await fetchProfile();
+      alert("Profile updated successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update profile.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -294,11 +317,10 @@ export function SettingsView() {
               )}
               <div className="space-y-3">
                 <div className="flex gap-3">
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                  <Button variant="secondary" className="h-9" onClick={handleChangePhoto}>Change Photo</Button>
-                  <Button variant="ghost" className="h-9 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => setAvatarUrl(null)}>Remove</Button>
+                  <Button variant="secondary" className="h-9" onClick={handleChangePhoto}>Change Photo URL</Button>
+                  <Button variant="ghost" className="h-9 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleRemovePhoto}>Remove</Button>
                 </div>
-                <p className="text-[13px] text-stone-500">JPG, GIF or PNG. Max size of 5MB.</p>
+                <p className="text-[13px] text-stone-500">Provide a direct URL to your avatar.</p>
               </div>
             </div>
             
@@ -306,27 +328,30 @@ export function SettingsView() {
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-[13px] font-medium text-stone-700 mb-1.5">First Name</label>
-                  <Input defaultValue={user?.fullName?.split(' ')[0] || ''} />
+                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Last Name</label>
-                  <Input defaultValue={user?.fullName?.split(' ').slice(1).join(' ') || ''} />
+                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Organization</label>
+                  <Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="e.g. Acme Corp" />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Timezone</label>
+                  <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
                 </div>
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Email Address</label>
-                <Input defaultValue={user?.email || ''} readOnly className="bg-stone-50 text-stone-500" />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Personal Meeting ID</label>
-                <div className="flex gap-3">
-                  <Input defaultValue="842-194-092" className="font-mono text-[15px]" />
-                  <Button variant="outline">Edit</Button>
-                </div>
+                <Input value={user?.email || ''} readOnly className="bg-stone-50 text-stone-500" />
               </div>
             </div>
             <div className="mt-8 pt-6 border-t border-stone-100 flex justify-end">
-              <Button>Save Changes</Button>
+              <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
             </div>
           </Card>
         );

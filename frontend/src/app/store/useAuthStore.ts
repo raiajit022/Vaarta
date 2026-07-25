@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { userClient } from '../apiClient';
 
 export interface UserInfo {
   id: string;
@@ -7,6 +8,10 @@ export interface UserInfo {
   fullName: string | null;
   role: string;
   emailVerified: boolean;
+  // User Service fields
+  avatarUrl?: string;
+  organization?: string;
+  timezone?: string;
 }
 
 interface AuthState {
@@ -22,6 +27,7 @@ interface AuthState {
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: UserInfo) => void;
   logout: () => void;
+  fetchProfile: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -47,6 +53,30 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
         }),
+        
+      fetchProfile: async () => {
+        const state = set; // zustand's set function
+        try {
+          const response = await userClient.get('/api/users/me');
+          const profile = response.data;
+          set((s) => {
+            if (s.user) {
+              return {
+                user: {
+                  ...s.user,
+                  fullName: profile.displayName,
+                  avatarUrl: profile.avatarUrl,
+                  organization: profile.organization,
+                  timezone: profile.timezone,
+                }
+              };
+            }
+            return {};
+          });
+        } catch (error) {
+          console.error("Failed to fetch user profile", error);
+        }
+      }
     }),
     {
       name: 'vaarta-auth-storage', // name of item in the storage (must be unique)

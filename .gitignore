@@ -58,3 +58,6 @@ coverage/
 # Project Planning Files
 phase-*.md
 cursor.md
+
+# Phase files
+phase-*.md
