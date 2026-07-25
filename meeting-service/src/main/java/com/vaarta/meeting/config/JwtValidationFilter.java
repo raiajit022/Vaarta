@@ -20,6 +20,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+/**
+ * JWT Validation Filter.
+ * <p>
+ * Intercepts incoming HTTP requests, extracts the JWT from the Authorization header,
+ * validates its signature, and populates the Spring SecurityContext with the user's details.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtValidationFilter extends OncePerRequestFilter {

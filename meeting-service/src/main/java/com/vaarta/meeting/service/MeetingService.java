@@ -15,6 +15,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Core business logic for meetings.
+ *
+ * <p>Handles the creation of meetings, generating unique join codes,
+ * managing participant lists, and integrating with the notification-service
+ * for asynchronous email invites.
+ */
 @Service
 public class MeetingService {
 
@@ -41,6 +48,13 @@ public class MeetingService {
                 .build();
     }
 
+    /**
+     * Creates a new meeting and optionally sends out email invitations asynchronously.
+     *
+     * @param request the meeting details (title, scheduled time, participant emails).
+     * @param hostId  the UUID of the user creating the meeting.
+     * @return the created meeting details.
+     */
     @Transactional
     public MeetingResponse createMeeting(CreateMeetingRequest request, UUID hostId) {
         Meeting meeting = new Meeting();
@@ -100,6 +114,12 @@ public class MeetingService {
         return mapToResponse(meeting);
     }
 
+    /**
+     * Retrieves all meetings associated with a user (as a host or participant).
+     *
+     * @param userId the UUID of the user.
+     * @return a list of meetings.
+     */
     public List<MeetingResponse> getMyMeetings(UUID userId) {
         // Find meetings where user is a participant or host
         List<MeetingParticipant> participations = participantRepository.findByUserId(userId);
@@ -110,12 +130,27 @@ public class MeetingService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves the details of a specific meeting.
+     *
+     * @param id the UUID of the meeting.
+     * @return the meeting details.
+     * @throws RuntimeException if the meeting is not found.
+     */
     public MeetingResponse getMeeting(UUID id) {
         return meetingRepository.findById(id)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new RuntimeException("Meeting not found"));
     }
 
+    /**
+     * Validates a join code and adds the user as a participant to the meeting.
+     *
+     * @param joinCode the 9-character code for the meeting.
+     * @param userId   the UUID of the user joining.
+     * @return the meeting details.
+     * @throws RuntimeException if the meeting does not exist, or is cancelled/ended.
+     */
     @Transactional
     public MeetingResponse joinMeeting(String joinCode, UUID userId) {
         Meeting meeting = meetingRepository.findByJoinCode(joinCode)
@@ -138,6 +173,13 @@ public class MeetingService {
         return mapToResponse(meeting);
     }
 
+    /**
+     * Ends a meeting. Only the host is permitted to end their own meeting.
+     *
+     * @param id     the UUID of the meeting.
+     * @param userId the UUID of the user attempting to end the meeting.
+     * @throws RuntimeException if the user is not the host.
+     */
     @Transactional
     public void endMeeting(UUID id, UUID userId) {
         Meeting meeting = meetingRepository.findById(id)

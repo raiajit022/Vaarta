@@ -1,5 +1,8 @@
 package com.vaarta.meeting.dto;
 
+/**
+ * Data Transfer Object for sending a new chat message in a meeting.
+ */
 public class ChatMessageRequest {
     private String content;
 

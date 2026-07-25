@@ -3,6 +3,9 @@ package com.vaarta.meeting.dto;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * Data Transfer Object for representing a chat message in a meeting.
+ */
 public class ChatMessageResponse {
     private UUID id;
     private UUID meetingId;

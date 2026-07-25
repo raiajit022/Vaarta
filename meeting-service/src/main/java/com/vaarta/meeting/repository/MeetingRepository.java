@@ -8,6 +8,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
 
+/**
+ * Repository interface for managing {@link com.vaarta.meeting.model.Meeting} entities.
+ */
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, UUID> {
     Optional<Meeting> findByJoinCode(String joinCode);

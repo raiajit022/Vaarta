@@ -3,6 +3,9 @@ package com.vaarta.meeting.dto;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+/**
+ * Data Transfer Object for creating a new meeting.
+ */
 public class CreateMeetingRequest {
     private String title;
     private ZonedDateTime scheduledStart;

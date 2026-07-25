@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * Entity representing a participant's association and timeline within a meeting.
+ */
 @Entity
 @Table(name = "meeting_participants")
 public class MeetingParticipant {

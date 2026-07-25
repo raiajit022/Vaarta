@@ -15,6 +15,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for handling chat messages within a meeting.
+ *
+ * <p>Provides endpoints to retrieve the chat history for a meeting and
+ * to post new chat messages. Validates that the requesting user is a
+ * participant in the meeting.
+ */
 @RestController
 @RequestMapping("/api/meetings/{id}/chat")
 public class ChatController {
