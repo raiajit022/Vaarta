@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import agent_router
+from app.routers import agent_router
+from app.config import settings
 
 app = FastAPI(title="Vaarta AI Service")
 

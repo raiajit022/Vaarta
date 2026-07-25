@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 from typing import Optional, Any, Dict
-from ..config import settings
-from ..agents.summarizer import agent as summarizer_agent
+from app.config import settings
+from app.agents.summarizer import agent as summarizer_agent
 
 router = APIRouter()
 

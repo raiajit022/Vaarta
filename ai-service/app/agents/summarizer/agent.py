@@ -1,8 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
-from ...clients.meeting_service_client import fetch_meeting_chats
-from ...config import settings
-from .prompts import SUMMARIZER_PROMPT
+from app.clients.meeting_service_client import fetch_meeting_chats
+from app.config import settings
+from app.agents.summarizer.prompts import SUMMARIZER_PROMPT
 import logging
 
 logger = logging.getLogger(__name__)
