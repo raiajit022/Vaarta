@@ -4,7 +4,20 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
 
-export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+import { useMeetingStore } from "../../../../store/useMeetingStore";
+
+export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
+  const { createMeeting, isLoading } = useMeetingStore();
+  const [title, setTitle] = React.useState("Sarah's Personal Meeting Room");
+
+  const handleCreate = async () => {
+    try {
+      const meeting = await createMeeting(title);
+      onSuccess(meeting);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
@@ -18,7 +31,7 @@ export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void
         <div className="p-6 space-y-5">
           <div>
             <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Title</label>
-            <Input defaultValue="Sarah's Personal Meeting Room" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="flex items-center justify-between py-2 border-b border-stone-100">
             <div>
@@ -45,14 +58,31 @@ export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void
         </div>
         <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={onSuccess}>Create Meeting</Button>
+          <Button onClick={handleCreate} disabled={isLoading}>
+            {isLoading ? 'Creating...' : 'Create Meeting'}
+          </Button>
         </div>
       </Card>
     </div>
   );
 }
 
-export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
+  const { createMeeting, isLoading } = useMeetingStore();
+  const [topic, setTopic] = React.useState("Q3 Planning Session");
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [time, setTime] = React.useState("10:00");
+
+  const handleSchedule = async () => {
+    try {
+      // Combine date and time to ISO string
+      const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
+      const meeting = await createMeeting(topic, scheduledStart);
+      onSuccess(meeting);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
@@ -66,16 +96,16 @@ export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => vo
         <div className="p-6 space-y-5">
           <div>
             <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Topic</label>
-            <Input placeholder="e.g. Weekly Sync" defaultValue="Q3 Planning Session" />
+            <Input placeholder="e.g. Weekly Sync" value={topic} onChange={(e) => setTopic(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Date</label>
-              <Input type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Time</label>
-              <Input type="time" defaultValue="10:00" />
+              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>
           <div>
@@ -104,14 +134,16 @@ export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => vo
         </div>
         <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={onSuccess}>Schedule</Button>
+          <Button onClick={handleSchedule} disabled={isLoading}>
+            {isLoading ? 'Scheduling...' : 'Schedule'}
+          </Button>
         </div>
       </Card>
     </div>
   );
 }
 
-export function MeetingCreatedModal({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
+export function MeetingCreatedModal({ meeting, onClose, onStart }: { meeting: any; onClose: () => void; onStart: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
@@ -124,7 +156,7 @@ export function MeetingCreatedModal({ onClose, onStart }: { onClose: () => void;
         
         <div className="bg-stone-50 border border-stone-200 rounded-[8px] p-4 mb-6 flex items-center justify-between">
           <div className="font-mono text-[16px] text-stone-900 font-medium tracking-widest">
-            842-194-092
+            {meeting?.joinCode || "ERROR-CODE"}
           </div>
           <Button variant="ghost" className="h-8 px-2 text-emerald-600 hover:text-emerald-700">
             <Copy className="w-4 h-4 mr-1.5" /> Copy

@@ -52,6 +52,20 @@ services:
       JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
       AUTH_SERVICE_INTERNAL_KEY: internal_dev_key_123
 
+  meeting-service:
+    build: ./meeting-service
+    container_name: vaarta-meeting-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/meetings
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
+
   frontend:
     build: ./frontend
     container_name: vaarta-frontend
@@ -60,10 +74,12 @@ services:
     depends_on:
       - auth-service
       - user-service
+      - meeting-service
     # Provide the API URLs to the Vite build process inside Docker
     environment:
       - VITE_AUTH_API_URL=http://localhost:8081
       - VITE_USER_API_URL=http://localhost:8082
+      - VITE_MEETING_API_URL=http://localhost:8083
 
 volumes:
   pgdata:
