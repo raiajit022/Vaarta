@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/auth}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate           # Flyway owns the schema — Hibernate only validates
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+# ── JWT ─────────────────────────────────────────────────────────────────────
+jwt:
+  secret: ${JWT_SECRET}            # must be ≥256 bits for HS256; set in .env
+  access-token-expiry-ms: 900000   # 15 minutes
+  refresh-token-expiry-ms: 604800000  # 7 days
+
+# ── Resend (email provider) ──────────────────────────────────────────────────
+resend:
+  api-key: ${RESEND_API_KEY}
+  from-address: ${RESEND_FROM:noreply@vaarta.com}
+
+# ── Application ──────────────────────────────────────────────────────────────
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
+# ── Actuator ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+server:
+  port: 8080
+  error:
+    include-message: always      # return error message in JSON response body
