@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vaarta-postgres
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./auth-service
+    container_name: vaarta-auth-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: ./auth-service/.env
+    # Fallback env vars if .env is missing
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/auth
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: super_secret_development_jwt_key_that_is_at_least_32_bytes_long
+      FRONTEND_URL: http://localhost:3000
+
+  frontend:
+    build: ./frontend
+    container_name: vaarta-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+    # Provide the auth API URL to the Vite build process inside Docker
+    environment:
+      - VITE_AUTH_API_URL=http://localhost:8081
+
+volumes:
+  pgdata:

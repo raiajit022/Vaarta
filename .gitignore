@@ -54,3 +54,7 @@ docker-compose.override.yml
 # Test / coverage
 coverage/
 .nyc_output/
+
+# Project Planning Files
+phase-*.md
+cursor.md
