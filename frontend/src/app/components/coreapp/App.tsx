@@ -3,6 +3,7 @@ import { Sidebar, TopNav } from "./components/layout/Layout";
 import { DashboardView } from "./components/views/DashboardView";
 import { CreateMeetingModal, MeetingCreatedModal, ScheduleMeetingModal } from "./components/views/Modals";
 import { JoinMeetingView, PreCallDeviceCheckView, WaitingRoomGuestView, WaitingRoomHostView } from "./components/views/MeetingViews";
+import { LiveMeetingView } from "./components/views/LiveMeetingView";
 import { MeetingsView, RecordingsView, ContactsView, SettingsView } from "./components/views/OtherViews";
 import { useAuthStore } from "../../store/useAuthStore";
 
@@ -16,6 +17,10 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
 
   useEffect(() => {
     fetchProfile();
+
+    const handleAdmitGuest = () => setCurrentView("live");
+    window.addEventListener('admit-guest', handleAdmitGuest);
+    return () => window.removeEventListener('admit-guest', handleAdmitGuest);
   }, [fetchProfile]);
 
   const handleCreateMeeting = () => {
@@ -105,17 +110,19 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
           <div className="flex-1 flex flex-col min-w-0 bg-[#faf9f7]">
             <TopNav onAvatarClick={() => setCurrentView("settings")} />
             <div className="flex-1 overflow-auto">
-              <WaitingRoomHostView onAdmitAll={() => setCurrentView("dashboard")} />
+              <WaitingRoomHostView onAdmitAll={() => setCurrentView("live")} />
             </div>
           </div>
         );
+      case "live":
+        return <LiveMeetingView meeting={activeMeeting} onLeave={() => setCurrentView("dashboard")} />;
       default:
         return null;
     }
   };
 
   // If we are in full-screen views, don't show sidebar
-  const isFullScreenView = ["join", "pre-call", "waiting-guest"].includes(currentView);
+  const isFullScreenView = ["join", "pre-call", "waiting-guest", "live"].includes(currentView);
 
   return (
     <div className="flex h-screen bg-[#faf9f7] font-sans text-stone-900">

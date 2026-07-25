@@ -140,7 +140,11 @@ export function WaitingRoomGuestView({ onLeave }: { onLeave: () => void }) {
           You have joined <strong>Q3 Product Strategy Sync</strong>.<br />
           The host will let you in shortly.
         </p>
-        <Button variant="outline" onClick={onLeave}>Leave Meeting</Button>
+        <div className="flex justify-center gap-4">
+          <Button variant="outline" onClick={onLeave}>Leave Meeting</Button>
+          {/* For prototype purposes, let the guest join directly */}
+          <Button onClick={() => window.dispatchEvent(new CustomEvent('admit-guest'))}>Enter (Demo)</Button>
+        </div>
       </div>
     </div>
   );
