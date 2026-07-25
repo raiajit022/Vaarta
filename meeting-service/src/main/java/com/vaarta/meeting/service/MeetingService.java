@@ -21,13 +21,24 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final MeetingParticipantRepository participantRepository;
     private final JoinCodeGenerator joinCodeGenerator;
+    private final org.springframework.web.client.RestClient restClient;
+
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url}")
+    private String frontendUrl;
 
     public MeetingService(MeetingRepository meetingRepository,
                           MeetingParticipantRepository participantRepository,
-                          JoinCodeGenerator joinCodeGenerator) {
+                          JoinCodeGenerator joinCodeGenerator,
+                          org.springframework.web.client.RestClient.Builder restClientBuilder,
+                          @org.springframework.beans.factory.annotation.Value("${app.notification-service-url}") String notificationServiceUrl,
+                          @org.springframework.beans.factory.annotation.Value("${app.internal-api-key}") String internalApiKey) {
         this.meetingRepository = meetingRepository;
         this.participantRepository = participantRepository;
         this.joinCodeGenerator = joinCodeGenerator;
+        this.restClient = restClientBuilder
+                .baseUrl(notificationServiceUrl)
+                .defaultHeader("X-Internal-Key", internalApiKey)
+                .build();
     }
 
     @Transactional
@@ -59,6 +70,32 @@ public class MeetingService {
         hostParticipant.setRole("HOST");
         hostParticipant.setJoinedAt(ZonedDateTime.now());
         participantRepository.save(hostParticipant);
+
+        if (request.getParticipantEmails() != null && !request.getParticipantEmails().isEmpty()) {
+            final String link = frontendUrl + "/join/" + joinCode;
+            final String title = request.getTitle();
+            final UUID mId = meeting.getId();
+            
+            // Send notifications asynchronously
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                for (String email : request.getParticipantEmails()) {
+                    try {
+                        restClient.post()
+                                .uri("/api/notifications/meeting-invite")
+                                .body(java.util.Map.of(
+                                        "recipientEmail", email.trim(),
+                                        "meetingTitle", title,
+                                        "joinLink", link,
+                                        "meetingId", mId
+                                ))
+                                .retrieve()
+                                .toBodilessEntity();
+                    } catch (Exception e) {
+                        System.err.println("Failed to send invite to " + email + ": " + e.getMessage());
+                    }
+                }
+            });
+        }
 
         return mapToResponse(meeting);
     }

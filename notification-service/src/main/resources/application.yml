@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/notifications}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+
+resend:
+  api-key: ${RESEND_API_KEY}
+  from-address: ${RESEND_FROM_ADDRESS:notifications@vaarta.com}
+
+app:
+  internal-api-key: ${INTERNAL_API_KEY}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}

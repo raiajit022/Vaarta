@@ -1,9 +1,9 @@
 spring:
   application:
-    name: user-service
+    name: meeting-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/auth}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/meetings}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -15,13 +15,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        default_schema: user_service
+        default_schema: public
 
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-    default-schema: user_service
+    default-schema: public
     create-schemas: true
 
 # ── JWT ─────────────────────────────────────────────────────────────────────
@@ -30,7 +30,9 @@ jwt:
 
 # ── Application ──────────────────────────────────────────────────────────────
 app:
-  internal-key: ${AUTH_SERVICE_INTERNAL_KEY:internal_dev_key_123}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
+  internal-api-key: ${INTERNAL_API_KEY:internal_dev_key_123}
 
 server:
   port: 8080

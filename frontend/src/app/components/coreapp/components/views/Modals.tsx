@@ -9,10 +9,12 @@ import { useMeetingStore } from "../../../../store/useMeetingStore";
 export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
   const { createMeeting, isLoading } = useMeetingStore();
   const [title, setTitle] = React.useState("Sarah's Personal Meeting Room");
+  const [emailsInput, setEmailsInput] = React.useState("");
 
   const handleCreate = async () => {
     try {
-      const meeting = await createMeeting(title);
+      const emails = emailsInput.split(',').map(e => e.trim()).filter(e => e.length > 0);
+      const meeting = await createMeeting(title, undefined, emails);
       onSuccess(meeting);
     } catch (e) {
       console.error(e);
@@ -53,7 +55,7 @@ export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void
           </div>
           <div>
             <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Invite Participants</label>
-            <Input placeholder="Enter email addresses..." />
+            <Input placeholder="Enter email addresses, comma separated..." value={emailsInput} onChange={(e) => setEmailsInput(e.target.value)} />
           </div>
         </div>
         <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
@@ -72,12 +74,14 @@ export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => vo
   const [topic, setTopic] = React.useState("Q3 Planning Session");
   const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = React.useState("10:00");
+  const [emailsInput, setEmailsInput] = React.useState("");
 
   const handleSchedule = async () => {
     try {
       // Combine date and time to ISO string
       const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
-      const meeting = await createMeeting(topic, scheduledStart);
+      const emails = emailsInput.split(',').map(e => e.trim()).filter(e => e.length > 0);
+      const meeting = await createMeeting(topic, scheduledStart, emails);
       onSuccess(meeting);
     } catch (e) {
       console.error(e);
@@ -129,7 +133,7 @@ export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => vo
           </div>
           <div>
             <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Invite Participants</label>
-            <Input placeholder="Enter email addresses..." />
+            <Input placeholder="Enter email addresses, comma separated..." value={emailsInput} onChange={(e) => setEmailsInput(e.target.value)} />
           </div>
         </div>
         <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
