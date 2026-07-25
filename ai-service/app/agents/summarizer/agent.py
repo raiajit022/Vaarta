@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from app.clients.meeting_service_client import fetch_meeting_chats
 from app.config import settings
 from app.agents.summarizer.prompts import SUMMARIZER_PROMPT
