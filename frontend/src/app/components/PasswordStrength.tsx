@@ -1,3 +1,8 @@
+/**
+ * Evaluates and displays the strength of a given password using a visual meter.
+ * 
+ * @param props.password The current password string to evaluate.
+ */
 export function PasswordStrength({ password }: { password: string }) {
   const strength = calculateStrength(password);
   

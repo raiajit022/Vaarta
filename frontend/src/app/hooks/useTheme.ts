@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
 
+/**
+ * Custom React hook for managing light/dark theme state.
+ * Toggles the 'dark' and 'light' classes on the document root element.
+ *
+ * @returns An object containing the `isDark` boolean and a `setIsDark` setter.
+ */
 export function useTheme() {
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {

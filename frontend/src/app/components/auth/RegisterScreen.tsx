@@ -2,25 +2,48 @@ import { Loader2, ArrowRight, Check } from "lucide-react";
 import { InputField } from "../InputField";
 import { PasswordStrength } from "../PasswordStrength";
 
+/**
+ * Props for the RegisterScreen component.
+ */
 interface RegisterScreenProps {
+  /** The current full name input value. */
   name: string;
+  /** Callback to update the full name input value. */
   setName: (val: string) => void;
+  /** The current email input value. */
   email: string;
+  /** Callback to update the email input value. */
   setEmail: (val: string) => void;
+  /** The current mobile number input value. */
   mobile: string;
+  /** Callback to update the mobile number input value. */
   setMobile: (val: string) => void;
+  /** The current password input value. */
   password: string;
+  /** Callback to update the password input value. */
   setPassword: (val: string) => void;
+  /** The current password confirmation input value. */
   confirmPassword: string;
+  /** Callback to update the password confirmation input value. */
   setConfirmPassword: (val: string) => void;
+  /** Boolean indicating whether the user agreed to the terms. */
   terms: boolean;
+  /** Callback to update the terms agreement state. */
   setTerms: (val: boolean) => void;
+  /** Validation or API errors keyed by field name. */
   errors: { [key: string]: string };
+  /** Callback to update the errors object. */
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
+  /** Indicates if an authentication request is currently in progress. */
   loading: boolean;
+  /** Callback invoked when the user submits the registration form. */
   handleSubmit: (e: React.FormEvent) => void;
 }
 
+/**
+ * Renders the registration form for new users.
+ * Captures user details, password confirmation, and terms agreement.
+ */
 export function RegisterScreen({
   name,
   setName,

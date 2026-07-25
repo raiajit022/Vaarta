@@ -6,6 +6,12 @@ import { Calendar, Video, Clock, Users, Search, Play, Phone, Mail, Settings, Use
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 
+/**
+ * Displays a list of upcoming and past meetings.
+ * Allows the user to view meeting details, copy join links, and join active meetings.
+ *
+ * @param props.onScheduleMeeting Callback to open the 'Schedule Meeting' modal.
+ */
 export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => void }) {
   const [activeTab, setActiveTab] = useState("upcoming");
   const { meetings, fetchMyMeetings, isLoading } = useMeetingStore();
@@ -98,6 +104,10 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
   );
 }
 
+/**
+ * Displays recorded meetings and their transcripts.
+ * Currently a placeholder UI.
+ */
 export function RecordingsView() {
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
@@ -140,6 +150,10 @@ export function RecordingsView() {
   );
 }
 
+/**
+ * Displays a directory of user contacts and frequent collaborators.
+ * Currently a placeholder UI with mock data.
+ */
 export function ContactsView() {
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
 
@@ -236,6 +250,10 @@ export function ContactsView() {
   );
 }
 
+/**
+ * Renders the user settings page, allowing profile updates, 
+ * audio/video configuration, notification preferences, and security settings.
+ */
 export function SettingsView() {
   const { user, fetchProfile } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState("profile");

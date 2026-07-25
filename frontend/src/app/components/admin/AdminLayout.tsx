@@ -3,16 +3,25 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { Users, Video, LogOut, ArrowLeft } from "lucide-react";
 import { VaartaLogo } from "../VaartaLogo";
 
+/**
+ * Props for the AdminLayout component.
+ */
 interface AdminLayoutProps {
+  /** The content to render inside the main area of the layout. */
   children: ReactNode;
+  /** Callback to change the active route in the admin panel. */
   onNavigate: (route: string) => void;
+  /** The currently active route identifier. */
   currentRoute: string;
 }
 
+/**
+ * Layout wrapper for the administrative dashboard.
+ * Verifies the user's role is 'ADMIN' and renders the admin sidebar.
+ */
 export function AdminLayout({ children, onNavigate, currentRoute }: AdminLayoutProps) {
   const { user, logout } = useAuthStore();
 
-  // If not admin, just return null or redirect (handled in CoreApp mostly, but good to double check)
   if (user?.role !== "ADMIN") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#14120F]">
