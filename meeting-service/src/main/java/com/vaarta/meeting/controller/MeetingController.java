@@ -108,4 +108,14 @@ public class MeetingController {
         MeetingResponse response = meetingService.generateActionItems(id, userId);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Generates sentiment for the meeting using the AI service.
+     */
+    @PostMapping("/{id}/sentiment:generate")
+    public ResponseEntity<MeetingResponse> generateSentiment(@PathVariable UUID id) {
+        UUID userId = getCurrentUserId();
+        MeetingResponse response = meetingService.generateSentiment(id, userId);
+        return ResponseEntity.ok(response);
+    }
 }

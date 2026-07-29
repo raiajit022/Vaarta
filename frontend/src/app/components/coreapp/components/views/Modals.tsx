@@ -186,9 +186,10 @@ export function MeetingCreatedModal({ meeting, onClose, onStart }: { meeting: an
 }
 
 export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClose: () => void }) {
-  const { generateSummary, generateActionItems, isLoading } = useMeetingStore();
+  const { generateSummary, generateActionItems, generateSentiment, isLoading } = useMeetingStore();
   const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
   const [isGeneratingActionItems, setIsGeneratingActionItems] = React.useState(false);
+  const [isGeneratingSentiment, setIsGeneratingSentiment] = React.useState(false);
 
   const handleGenerateSummary = async () => {
     try {
@@ -209,6 +210,17 @@ export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClos
       console.error(e);
     } finally {
       setIsGeneratingActionItems(false);
+    }
+  };
+
+  const handleGenerateSentiment = async () => {
+    try {
+      setIsGeneratingSentiment(true);
+      await generateSentiment(meeting.id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingSentiment(false);
     }
   };
 
@@ -301,6 +313,39 @@ export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClos
             ) : (
               <div className="text-[13px] text-stone-500 italic">
                 {meeting.status === 'ENDED' ? 'No action items extracted yet.' : 'Action items will be available after the meeting ends.'}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-stone-100">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[13px] font-medium text-stone-900">Meeting Sentiment</label>
+              {meeting.status === 'ENDED' && !meeting.sentimentLabel && (
+                <Button variant="outline" onClick={handleGenerateSentiment} disabled={isGeneratingSentiment}>
+                  {isGeneratingSentiment ? 'Analyzing...' : 'Analyze Sentiment'}
+                </Button>
+              )}
+            </div>
+            {meeting.sentimentLabel ? (
+              <div className="bg-stone-50 p-4 rounded-lg flex flex-col gap-2">
+                <div>
+                  <span className={`inline-block px-2.5 py-1 rounded-full text-[12px] font-bold ${
+                    meeting.sentimentLabel === 'POSITIVE' ? 'bg-emerald-100 text-emerald-700' :
+                    meeting.sentimentLabel === 'TENSE' ? 'bg-red-100 text-red-700' :
+                    'bg-stone-200 text-stone-700'
+                  }`}>
+                    {meeting.sentimentLabel}
+                  </span>
+                </div>
+                {meeting.sentimentReason && (
+                  <p className="text-[13.5px] text-stone-700 leading-relaxed">
+                    {meeting.sentimentReason}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-[13px] text-stone-500 italic">
+                {meeting.status === 'ENDED' ? 'No sentiment analysis yet.' : 'Sentiment will be available after the meeting ends.'}
               </div>
             )}
           </div>

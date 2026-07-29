@@ -46,6 +46,12 @@ public class Meeting {
     @Column(name = "action_items", columnDefinition = "TEXT")
     private String actionItems;
 
+    @Column(name = "sentiment_label", length = 50)
+    private String sentimentLabel;
+
+    @Column(name = "sentiment_reason", columnDefinition = "TEXT")
+    private String sentimentReason;
+
     public Meeting() {
     }
 
@@ -135,5 +141,21 @@ public class Meeting {
 
     public void setActionItems(String actionItems) {
         this.actionItems = actionItems;
+    }
+
+    public String getSentimentLabel() {
+        return sentimentLabel;
+    }
+
+    public void setSentimentLabel(String sentimentLabel) {
+        this.sentimentLabel = sentimentLabel;
+    }
+
+    public String getSentimentReason() {
+        return sentimentReason;
+    }
+
+    public void setSentimentReason(String sentimentReason) {
+        this.sentimentReason = sentimentReason;
     }
 }

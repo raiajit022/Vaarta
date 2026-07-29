@@ -269,6 +269,40 @@ public class MeetingService {
     }
 
     @Transactional
+    public MeetingResponse generateSentiment(UUID id, UUID userId) {
+        Meeting meeting = meetingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        participantRepository.findByMeetingIdAndUserId(id, userId)
+                .orElseThrow(() -> new RuntimeException("User is not a participant of this meeting"));
+
+        if (meeting.getStatus() != MeetingStatus.ENDED) {
+            throw new RuntimeException("Can only track sentiment for completed meetings");
+        }
+
+        try {
+            java.util.Map<String, Object> response = aiRestClient.post()
+                    .uri("/agents/invoke")
+                    .body(java.util.Map.of(
+                            "agentType", "SENTIMENT",
+                            "meetingId", id.toString()
+                    ))
+                    .retrieve()
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+
+            if (response != null && response.containsKey("sentimentLabel")) {
+                meeting.setSentimentLabel((String) response.get("sentimentLabel"));
+                meeting.setSentimentReason((String) response.get("sentimentReason"));
+                meeting = meetingRepository.save(meeting);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate sentiment: " + e.getMessage());
+        }
+
+        return MeetingResponse.from(meeting);
+    }
+
+    @Transactional
     public String invokeChatCommand(UUID id, UUID userId, String userMessage) {
         Meeting meeting = meetingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meeting not found"));

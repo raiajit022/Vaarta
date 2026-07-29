@@ -19,6 +19,8 @@ public class MeetingResponse {
     private ZonedDateTime createdAt;
     private String summary;
     private String actionItems;
+    private String sentimentLabel;
+    private String sentimentReason;
 
     public MeetingResponse() {}
 
@@ -48,6 +50,12 @@ public class MeetingResponse {
     public String getActionItems() { return actionItems; }
     public void setActionItems(String actionItems) { this.actionItems = actionItems; }
 
+    public String getSentimentLabel() { return sentimentLabel; }
+    public void setSentimentLabel(String sentimentLabel) { this.sentimentLabel = sentimentLabel; }
+
+    public String getSentimentReason() { return sentimentReason; }
+    public void setSentimentReason(String sentimentReason) { this.sentimentReason = sentimentReason; }
+
     public static MeetingResponse from(com.vaarta.meeting.model.Meeting meeting) {
         MeetingResponse response = new MeetingResponse();
         response.setId(meeting.getId());
@@ -61,6 +69,8 @@ public class MeetingResponse {
         response.setCreatedAt(meeting.getCreatedAt());
         response.setSummary(meeting.getSummary());
         response.setActionItems(meeting.getActionItems());
+        response.setSentimentLabel(meeting.getSentimentLabel());
+        response.setSentimentReason(meeting.getSentimentReason());
         return response;
     }
 }

@@ -31,5 +31,9 @@ async def invoke_agent(request: AgentInvokeRequest, _ = Depends(verify_internal_
         user_command = request.payload.get("user_command", "") if request.payload else ""
         result = await chat_commands_agent.run_chat_command(request.meetingId, user_command)
         return result
+    elif agent_type == "SENTIMENT":
+        from app.agents.sentiment_tracker import agent as sentiment_tracker_agent
+        result = await sentiment_tracker_agent.run_sentiment_tracker(request.meetingId)
+        return result
     else:
         raise HTTPException(status_code=400, detail=f"Agent type {agent_type} not implemented yet")
