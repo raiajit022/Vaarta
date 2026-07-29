@@ -7,34 +7,81 @@ import { Card } from "../ui/Card";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 
 export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
-  const { createMeeting, isLoading } = useMeetingStore();
+  const { createMeeting, suggestAgenda, isLoading } = useMeetingStore();
   const [title, setTitle] = React.useState("Sarah's Personal Meeting Room");
   const [emailsInput, setEmailsInput] = React.useState("");
+  const [agendaDesc, setAgendaDesc] = React.useState("");
+  const [agenda, setAgenda] = React.useState<string[]>([]);
+  const [isSuggesting, setIsSuggesting] = React.useState(false);
 
   const handleCreate = async () => {
     try {
       const emails = emailsInput.split(',').map(e => e.trim()).filter(e => e.length > 0);
-      const meeting = await createMeeting(title, undefined, emails);
+      const meeting = await createMeeting(title, undefined, emails, agenda.length > 0 ? agenda : undefined);
       onSuccess(meeting);
     } catch (e) {
       console.error(e);
     }
   };
+  const handleSuggestAgenda = async () => {
+    if (!agendaDesc.trim()) return;
+    try {
+      setIsSuggesting(true);
+      const res = await suggestAgenda(agendaDesc);
+      if (res.title) setTitle(res.title);
+      if (res.agenda) setAgenda(res.agenda);
+    } catch (e) {
+      console.error("Failed to suggest agenda", e);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)]">
+      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)] max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-stone-100">
           <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Create Meeting</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-6 overflow-y-auto space-y-5">
+          <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+            <label className="block text-[13px] font-medium text-emerald-900 mb-1.5">Use AI to plan this meeting</label>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="What is this meeting about?" 
+                value={agendaDesc} 
+                onChange={(e) => setAgendaDesc(e.target.value)} 
+                className="bg-white"
+              />
+              <Button onClick={handleSuggestAgenda} disabled={isSuggesting || !agendaDesc.trim()}>
+                {isSuggesting ? 'Thinking...' : 'Suggest'}
+              </Button>
+            </div>
+          </div>
+          
           <div>
             <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Title</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
+
+          {agenda.length > 0 && (
+            <div>
+              <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Agenda</label>
+              <div className="bg-stone-50 border border-stone-100 p-3 rounded-lg text-[13.5px] text-stone-700 space-y-1.5">
+                {agenda.map((point, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <span className="text-emerald-500">•</span>
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between py-2 border-b border-stone-100">
             <div>
               <p className="text-[14px] font-medium text-stone-900">Instant Meeting</p>
@@ -70,38 +117,85 @@ export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void
 }
 
 export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
-  const { createMeeting, isLoading } = useMeetingStore();
+  const { createMeeting, suggestAgenda, isLoading } = useMeetingStore();
   const [topic, setTopic] = React.useState("Q3 Planning Session");
   const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = React.useState("10:00");
   const [emailsInput, setEmailsInput] = React.useState("");
+  const [agendaDesc, setAgendaDesc] = React.useState("");
+  const [agenda, setAgenda] = React.useState<string[]>([]);
+  const [isSuggesting, setIsSuggesting] = React.useState(false);
 
   const handleSchedule = async () => {
     try {
       // Combine date and time to ISO string
       const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
       const emails = emailsInput.split(',').map(e => e.trim()).filter(e => e.length > 0);
-      const meeting = await createMeeting(topic, scheduledStart, emails);
+      const meeting = await createMeeting(topic, scheduledStart, emails, agenda.length > 0 ? agenda : undefined);
       onSuccess(meeting);
     } catch (e) {
       console.error(e);
     }
   };
+  const handleSuggestAgenda = async () => {
+    if (!agendaDesc.trim()) return;
+    try {
+      setIsSuggesting(true);
+      const res = await suggestAgenda(agendaDesc);
+      if (res.title) setTopic(res.title);
+      if (res.agenda) setAgenda(res.agenda);
+    } catch (e) {
+      console.error("Failed to suggest agenda", e);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)]">
+      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)] max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-stone-100">
           <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Schedule Meeting</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-6 overflow-y-auto space-y-5">
+          <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+            <label className="block text-[13px] font-medium text-emerald-900 mb-1.5">Use AI to plan this meeting</label>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="What is this meeting about?" 
+                value={agendaDesc} 
+                onChange={(e) => setAgendaDesc(e.target.value)} 
+                className="bg-white"
+              />
+              <Button onClick={handleSuggestAgenda} disabled={isSuggesting || !agendaDesc.trim()}>
+                {isSuggesting ? 'Thinking...' : 'Suggest'}
+              </Button>
+            </div>
+          </div>
+
           <div>
             <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Topic</label>
             <Input placeholder="e.g. Weekly Sync" value={topic} onChange={(e) => setTopic(e.target.value)} />
           </div>
+
+          {agenda.length > 0 && (
+            <div>
+              <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Agenda</label>
+              <div className="bg-stone-50 border border-stone-100 p-3 rounded-lg text-[13.5px] text-stone-700 space-y-1.5">
+                {agenda.map((point, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <span className="text-emerald-500">•</span>
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Date</label>

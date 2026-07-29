@@ -52,6 +52,9 @@ public class Meeting {
     @Column(name = "sentiment_reason", columnDefinition = "TEXT")
     private String sentimentReason;
 
+    @Column(name = "agenda", columnDefinition = "TEXT")
+    private String agenda;
+
     public Meeting() {
     }
 
@@ -157,5 +160,13 @@ public class Meeting {
 
     public void setSentimentReason(String sentimentReason) {
         this.sentimentReason = sentimentReason;
+    }
+
+    public String getAgenda() {
+        return agenda;
+    }
+
+    public void setAgenda(String agenda) {
+        this.agenda = agenda;
     }
 }

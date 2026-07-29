@@ -118,4 +118,17 @@ public class MeetingController {
         MeetingResponse response = meetingService.generateSentiment(id, userId);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Suggests a title and agenda for a meeting based on a description.
+     * This endpoint is called before a meeting is created.
+     */
+    @PostMapping("/suggest-agenda")
+    public ResponseEntity<java.util.Map<String, Object>> suggestAgenda(@RequestBody java.util.Map<String, String> payload) {
+        String description = payload.get("description");
+        if (description == null || description.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(meetingService.suggestAgenda(description));
+    }
 }

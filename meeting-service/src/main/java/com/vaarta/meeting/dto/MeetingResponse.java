@@ -21,6 +21,7 @@ public class MeetingResponse {
     private String actionItems;
     private String sentimentLabel;
     private String sentimentReason;
+    private String agenda;
 
     public MeetingResponse() {}
 
@@ -56,6 +57,9 @@ public class MeetingResponse {
     public String getSentimentReason() { return sentimentReason; }
     public void setSentimentReason(String sentimentReason) { this.sentimentReason = sentimentReason; }
 
+    public String getAgenda() { return agenda; }
+    public void setAgenda(String agenda) { this.agenda = agenda; }
+
     public static MeetingResponse from(com.vaarta.meeting.model.Meeting meeting) {
         MeetingResponse response = new MeetingResponse();
         response.setId(meeting.getId());
@@ -71,6 +75,7 @@ public class MeetingResponse {
         response.setActionItems(meeting.getActionItems());
         response.setSentimentLabel(meeting.getSentimentLabel());
         response.setSentimentReason(meeting.getSentimentReason());
+        response.setAgenda(meeting.getAgenda());
         return response;
     }
 }

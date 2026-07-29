@@ -63,17 +63,28 @@ public class MeetingService {
      */
     @Transactional
     public MeetingResponse createMeeting(CreateMeetingRequest request, UUID hostId) {
-        Meeting meeting = new Meeting();
-        meeting.setTitle(request.getTitle());
-        meeting.setHostId(hostId);
-        meeting.setScheduledStart(request.getScheduledStart());
-        
-        // Generate unique join code
         String joinCode;
         do {
             joinCode = joinCodeGenerator.generate();
         } while (meetingRepository.findByJoinCode(joinCode).isPresent());
+
+        Meeting meeting = new Meeting();
+        meeting.setTitle(request.getTitle());
+        meeting.setHostId(hostId);
         meeting.setJoinCode(joinCode);
+        
+        if (request.getScheduledStart() != null) {
+            meeting.setScheduledStart(request.getScheduledStart());
+        }
+        
+        // Save the agenda if provided (serialize as JSON list)
+        if (request.getAgenda() != null && !request.getAgenda().isEmpty()) {
+            try {
+                meeting.setAgenda(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request.getAgenda()));
+            } catch (Exception e) {
+                // Ignore parsing errors for now
+            }
+        }
 
         // If it's an instant meeting (no scheduled start), start it now
         if (request.getScheduledStart() == null || request.getScheduledStart().isBefore(ZonedDateTime.now().plusMinutes(1))) {
@@ -328,6 +339,22 @@ public class MeetingService {
             return null;
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke chat command: " + e.getMessage());
+        }
+    }
+
+    public java.util.Map<String, Object> suggestAgenda(String description) {
+        try {
+            java.util.Map<String, Object> response = aiRestClient.post()
+                    .uri("/agents/invoke")
+                    .body(java.util.Map.of(
+                            "agentType", "AGENDA_GENERATOR",
+                            "payload", java.util.Map.of("description", description)
+                    ))
+                    .retrieve()
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+            return response;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to suggest agenda: " + e.getMessage());
         }
     }
 

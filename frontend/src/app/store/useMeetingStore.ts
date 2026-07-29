@@ -18,6 +18,7 @@ export interface Meeting {
     actionItems?: string;
     sentimentLabel?: string;
     sentimentReason?: string;
+    agenda?: string;
 }
 
 /**
@@ -34,7 +35,10 @@ interface MeetingStore {
     fetchMyMeetings: () => Promise<void>;
     
     /** Creates a new meeting and optionally invites participants via email. */
-    createMeeting: (title: string, scheduledStart?: string, participantEmails?: string[]) => Promise<Meeting>;
+    createMeeting: (title: string, scheduledStart?: string, participantEmails?: string[], agenda?: string[]) => Promise<Meeting>;
+    
+    /** Suggests an agenda based on a description */
+    suggestAgenda: (description: string) => Promise<{title: string, agenda: string[]}>;
     
     /** Joins an existing meeting using its 9-character join code. */
     joinMeeting: (joinCode: string) => Promise<Meeting>;
@@ -68,13 +72,14 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             set({ error: error.response?.data?.message || 'Failed to fetch meetings', isLoading: false });
         }
     },
-    createMeeting: async (title: string, scheduledStart?: string, participantEmails?: string[]) => {
+    createMeeting: async (title: string, scheduledStart?: string, participantEmails?: string[], agenda?: string[]) => {
         set({ isLoading: true, error: null });
         try {
             const response = await meetingClient.post('/api/meetings', {
                 title,
                 scheduledStart,
-                participantEmails
+                participantEmails,
+                agenda
             });
             set((state) => ({ 
                 meetings: [response.data, ...state.meetings],
@@ -164,6 +169,17 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
         } catch (error: any) {
             console.error("Failed to send bot command", error);
             // We don't necessarily want to throw and crash the UI for a chat command failure
+        }
+    },
+    suggestAgenda: async (description: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await meetingClient.post('/api/meetings/suggest-agenda', { description });
+            set({ isLoading: false });
+            return response.data; // { title: string, agenda: string[] }
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || 'Failed to suggest agenda', isLoading: false });
+            throw error;
         }
     }
 }));

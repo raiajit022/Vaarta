@@ -35,5 +35,10 @@ async def invoke_agent(request: AgentInvokeRequest, _ = Depends(verify_internal_
         from app.agents.sentiment_tracker import agent as sentiment_tracker_agent
         result = await sentiment_tracker_agent.run_sentiment_tracker(request.meetingId)
         return result
+    elif agent_type == "AGENDA_GENERATOR":
+        from app.agents.agenda_generator import agent as agenda_generator_agent
+        description = request.payload.get("description", "") if request.payload else ""
+        result = await agenda_generator_agent.run_agenda_generator(description)
+        return result
     else:
         raise HTTPException(status_code=400, detail=f"Agent type {agent_type} not implemented yet")
