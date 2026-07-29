@@ -41,17 +41,20 @@ export default function App() {
 
   // Simple routing based on URL path and query string (since we're not using React Router yet)
   useEffect(() => {
-    const path = window.location.pathname;
-    const searchParams = new URLSearchParams(window.location.search);
-    const token = searchParams.get('token');
+    // Handle email click tracking wrappers (e.g. Resend/AWS SES) by inspecting the full decoded URL
+    const fullUrl = window.location.href;
+    const decodedUrl = decodeURIComponent(fullUrl);
 
-    if (path === '/verify-email') {
-      setUrlToken(token);
+    // Extract token using regex to bypass any nested routing wrappers
+    const verifyMatch = decodedUrl.match(/\/verify-email\?token=([^&/#]+)/);
+    const resetMatch = decodedUrl.match(/\/reset-password\?token=([^&/#]+)/);
+
+    if (verifyMatch) {
+      setUrlToken(verifyMatch[1]);
       setAuthMode('verify-email');
-      // Clear URL so refreshing doesn't re-trigger
       window.history.replaceState({}, document.title, "/");
-    } else if (path === '/reset-password') {
-      setUrlToken(token);
+    } else if (resetMatch) {
+      setUrlToken(resetMatch[1]);
       setAuthMode('reset');
       window.history.replaceState({}, document.title, "/");
     } else if (isAuthenticated) {
