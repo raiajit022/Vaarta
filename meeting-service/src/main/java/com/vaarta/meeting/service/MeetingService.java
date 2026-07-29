@@ -268,6 +268,35 @@ public class MeetingService {
         return MeetingResponse.from(meeting);
     }
 
+    @Transactional
+    public String invokeChatCommand(UUID id, UUID userId, String userMessage) {
+        Meeting meeting = meetingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        if (meeting.getStatus() != MeetingStatus.LIVE) {
+            throw new RuntimeException("Can only use chat commands in live meetings");
+        }
+
+        try {
+            java.util.Map<String, Object> response = aiRestClient.post()
+                    .uri("/agents/invoke")
+                    .body(java.util.Map.of(
+                            "agentType", "CHAT_COMMAND",
+                            "meetingId", id.toString(),
+                            "payload", java.util.Map.of("user_command", userMessage)
+                    ))
+                    .retrieve()
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+
+            if (response != null && response.containsKey("reply")) {
+                return (String) response.get("reply");
+            }
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke chat command: " + e.getMessage());
+        }
+    }
+
     private MeetingResponse mapToResponse(Meeting meeting) {
         return MeetingResponse.from(meeting);
     }

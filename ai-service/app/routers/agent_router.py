@@ -26,5 +26,10 @@ async def invoke_agent(request: AgentInvokeRequest, _ = Depends(verify_internal_
         from app.agents.action_items import agent as action_items_agent
         result = await action_items_agent.run_action_items_extractor(request.meetingId)
         return result
+    elif agent_type == "CHAT_COMMAND":
+        from app.agents.chat_commands import agent as chat_commands_agent
+        user_command = request.payload.get("user_command", "") if request.payload else ""
+        result = await chat_commands_agent.run_chat_command(request.meetingId, user_command)
+        return result
     else:
         raise HTTPException(status_code=400, detail=f"Agent type {agent_type} not implemented yet")

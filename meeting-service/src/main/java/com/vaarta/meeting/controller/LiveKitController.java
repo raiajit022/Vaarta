@@ -1,7 +1,10 @@
 package com.vaarta.meeting.controller;
 
 import com.vaarta.meeting.service.LiveKitTokenService;
+import com.vaarta.meeting.service.MeetingService;
 import io.livekit.server.RoomServiceClient;
+import livekit.LivekitModels.DataPacket;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +30,8 @@ import java.util.UUID;
 public class LiveKitController {
 
     private final LiveKitTokenService liveKitTokenService;
+    private final MeetingService meetingService;
+    private final ObjectMapper objectMapper;
 
     @Value("${livekit.api.key:devkey}")
     private String apiKey;
@@ -84,6 +89,61 @@ public class LiveKitController {
 
         Response<Void> response = client.removeParticipant(id.toString(), participantId).execute();
         
+        if (response.isSuccessful()) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(response.code()).build();
+        }
+    }
+
+    /**
+     * Accepts a chat command, invokes the AI service, and broadcasts the response to the LiveKit room.
+     */
+    @PostMapping("/chat/bot")
+    public ResponseEntity<Void> handleChatCommand(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Id") String userId,
+            @RequestBody Map<String, String> payload) throws IOException {
+        
+        String message = payload.get("message");
+        if (message == null || message.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // 1. Invoke the AI Service
+        String aiResponse = meetingService.invokeChatCommand(id, UUID.fromString(userId), message);
+
+        if (aiResponse == null || aiResponse.isEmpty()) {
+            return ResponseEntity.ok().build();
+        }
+
+        // 2. Broadcast to LiveKit
+        String httpUrl = livekitUrl.replace("ws://", "http://").replace("wss://", "https://");
+        RoomServiceClient client = RoomServiceClient.createClient(httpUrl, apiKey, apiSecret);
+
+        // Construct the JSON payload for the chat message
+        String msgId = UUID.randomUUID().toString();
+        long timestamp = System.currentTimeMillis();
+        
+        Map<String, Object> chatData = Map.of(
+                "id", msgId,
+                "message", aiResponse,
+                "timestamp", timestamp
+        );
+        
+        String jsonPayload = objectMapper.writeValueAsString(chatData);
+        byte[] data = jsonPayload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        // 3. Send via Data Channel
+        Response<Void> response = client.sendData(
+                id.toString(),
+                data,
+                DataPacket.Kind.RELIABLE,
+                java.util.Collections.emptyList(),
+                java.util.Collections.emptyList(),
+                "lk-chat-topic"
+        ).execute();
+
         if (response.isSuccessful()) {
             return ResponseEntity.ok().build();
         } else {

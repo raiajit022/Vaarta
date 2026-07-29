@@ -45,6 +45,9 @@ interface MeetingStore {
     
     /** Retrieves the LiveKit JWT and WebSocket URL required to connect to a meeting room. */
     fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
+    
+    /** Sends a chat command to the bot. */
+    sendBotCommand: (meetingId: string, message: string) => Promise<void>;
 }
 
 export const useMeetingStore = create<MeetingStore>((set) => ({
@@ -133,6 +136,14 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
         } catch (error: any) {
             set({ error: error.response?.data?.message || 'Failed to generate action items', isLoading: false });
             throw error;
+        }
+    },
+    sendBotCommand: async (meetingId: string, message: string) => {
+        try {
+            await meetingClient.post(`/api/meetings/${meetingId}/chat/bot`, { message });
+        } catch (error: any) {
+            console.error("Failed to send bot command", error);
+            // We don't necessarily want to throw and crash the UI for a chat command failure
         }
     }
 }));

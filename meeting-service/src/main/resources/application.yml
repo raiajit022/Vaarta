@@ -23,6 +23,7 @@ spring:
     baseline-on-migrate: false
     default-schema: public
     create-schemas: true
+    table: flyway_schema_history_meeting
 
 # ── JWT ─────────────────────────────────────────────────────────────────────
 jwt:
