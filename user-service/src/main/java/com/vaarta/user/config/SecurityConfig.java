@@ -17,7 +17,9 @@ import java.util.List;
 /**
  * Security configuration for the user service.
  *
- * <p>Defines the security filter chain, configures CORS, disables CSRF (as we use JWTs),
+ * <p>
+ * Defines the security filter chain, configures CORS, disables CSRF (as we use
+ * JWTs),
  * and specifies endpoint authorization rules.
  */
 @Configuration
@@ -30,16 +32,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/users/internal/**").permitAll() // Protected by internal key in the controller
-                    .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                    .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtValidationFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/users/internal/**").permitAll() // Protected by internal key in the
+                                                                               // controller
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtValidationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

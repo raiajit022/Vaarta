@@ -31,7 +31,7 @@ jwt:
 
 # ── Application ──────────────────────────────────────────────────────────────
 app:
-  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
   notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
   ai-service-url: ${AI_SERVICE_URL:http://ai-service:8000}
   internal-api-key: ${INTERNAL_API_KEY:internal_dev_key_123}

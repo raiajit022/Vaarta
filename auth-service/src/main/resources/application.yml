@@ -32,11 +32,11 @@ jwt:
 # ── Resend (email provider) ──────────────────────────────────────────────────
 resend:
   api-key: ${RESEND_API_KEY}
-  from-address: ${RESEND_FROM:noreply@vaarta.com}
+  from-address: ${RESEND_FROM:noreply@vaarta.site}
 
 # ── Application ──────────────────────────────────────────────────────────────
 app:
-  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
   user-service-url: ${USER_SERVICE_URL:http://localhost:8082}
   internal-key: ${AUTH_SERVICE_INTERNAL_KEY:internal_dev_key_123}
 
