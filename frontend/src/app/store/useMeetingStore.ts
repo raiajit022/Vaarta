@@ -116,6 +116,16 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             throw error;
         }
     },
+    inviteParticipants: async (meetingId: string, emails: string[]) => {
+        set({ isLoading: true, error: null });
+        try {
+            await meetingClient.post(`/api/meetings/${meetingId}/invite`, { emails });
+            set({ isLoading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || 'Failed to invite participants', isLoading: false });
+            throw error;
+        }
+    },
     deleteMeeting: async (meetingId: string) => {
         set({ isLoading: true, error: null });
         try {
