@@ -5,7 +5,7 @@ import { useAuthStore } from './store/useAuthStore';
  * Axios client instance for interacting with the Auth Service.
  */
 export const authClient = axios.create({
-  baseURL: import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8081',
+  baseURL: import.meta.env.VITE_AUTH_API_URL || 'https://auth-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -114,7 +114,7 @@ authClient.interceptors.response.use(
  * Axios client instance for interacting with the User Service.
  */
 export const userClient = axios.create({
-  baseURL: import.meta.env.VITE_USER_API_URL || 'http://localhost:8082',
+  baseURL: import.meta.env.VITE_USER_API_URL || 'https://user-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -188,7 +188,7 @@ userClient.interceptors.response.use(
  * Axios client instance for interacting with the Meeting Service.
  */
 export const meetingClient = axios.create({
-  baseURL: import.meta.env.VITE_MEETING_API_URL || 'http://localhost:8083',
+  baseURL: import.meta.env.VITE_MEETING_API_URL || 'https://meeting-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io',
   headers: {
     'Content-Type': 'application/json',
   },
