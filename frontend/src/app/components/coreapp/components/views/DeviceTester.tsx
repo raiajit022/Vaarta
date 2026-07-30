@@ -9,15 +9,38 @@ export function DeviceTester() {
   const [error, setError] = useState<string | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [speakerTestPlaying, setSpeakerTestPlaying] = useState(false);
+  
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
+  const [selectedAudioId, setSelectedAudioId] = useState<string>('');
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rafRef = useRef<number>(0);
   const speakerAudioRef = useRef<OscillatorNode | null>(null);
   const speakerGainRef = useRef<GainNode | null>(null);
+  const startingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const getDevices = async () => {
+      try {
+        // Request permissions first to get device labels
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(s => s.getTracks().forEach(t => t.stop()));
+        const d = await navigator.mediaDevices.enumerateDevices();
+        setDevices(d);
+        const vids = d.filter(x => x.kind === 'videoinput');
+        const auds = d.filter(x => x.kind === 'audioinput');
+        if (vids.length > 0) setSelectedVideoId(vids[0].deviceId);
+        if (auds.length > 0) setSelectedAudioId(auds[0].deviceId);
+      } catch (e) {
+        console.error("Could not enumerate devices", e);
+      }
+    };
+    getDevices();
+  }, []);
 
   const stopTest = useCallback(() => {
-    // Stop all media tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         track.stop();
@@ -25,60 +48,64 @@ export function DeviceTester() {
       });
       streamRef.current = null;
     }
-
-    // Clear the video element
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-
-    // Cancel animation frame
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
     }
-
-    // Disconnect audio source
     if (sourceRef.current) {
       try { sourceRef.current.disconnect(); } catch (_) {}
       sourceRef.current = null;
     }
     analyzerRef.current = null;
-
-    // Stop speaker test
     if (speakerAudioRef.current) {
       try { speakerAudioRef.current.stop(); } catch (_) {}
       speakerAudioRef.current = null;
     }
     speakerGainRef.current = null;
-
-    // Close audio context
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
-
     setIsTesting(false);
     setVolume(0);
     setSpeakerTestPlaying(false);
+    startingRef.current = false;
   }, []);
 
   const startTest = async () => {
-    // Clean up any previous test first
-    stopTest();
+    if (startingRef.current) return;
+    startingRef.current = true;
+    
+    // Stop any existing stream before starting a new one
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
 
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const constraints: MediaStreamConstraints = {
+        video: selectedVideoId ? { deviceId: { exact: selectedVideoId } } : true,
+        audio: selectedAudioId ? { deviceId: { exact: selectedAudioId } } : true
+      };
+      const s = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = s;
       setIsTesting(true);
       setError(null);
 
-      // Attach video
       if (videoRef.current) {
         videoRef.current.srcObject = s;
         videoRef.current.play().catch(e => console.error("Error playing video:", e));
       }
 
-      // Audio analysis for mic level
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioCtx;
       const analyzer = audioCtx.createAnalyser();
@@ -107,8 +134,17 @@ export function DeviceTester() {
     } catch (err: any) {
       setError(err.message || "Could not access camera/microphone. Please check browser permissions.");
       setIsTesting(false);
+    } finally {
+      startingRef.current = false;
     }
   };
+
+  // restart test if device changes
+  useEffect(() => {
+    if (isTesting && !startingRef.current) {
+      startTest();
+    }
+  }, [selectedVideoId, selectedAudioId]);
 
   const playSpeakerTest = () => {
     if (!audioContextRef.current || speakerTestPlaying) return;
@@ -130,7 +166,6 @@ export function DeviceTester() {
     oscillator.start();
     setSpeakerTestPlaying(true);
 
-    // Auto stop after 2 seconds
     setTimeout(() => {
       stopSpeakerTest();
     }, 2000);
@@ -145,7 +180,6 @@ export function DeviceTester() {
     setSpeakerTestPlaying(false);
   };
 
-  // Cleanup on unmount — uses ref so it always sees the current stream
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -173,6 +207,33 @@ export function DeviceTester() {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Camera</label>
+          <select 
+            className="w-full h-10 px-3 rounded-[6px] border border-stone-200 bg-white text-[14px] text-stone-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+            value={selectedVideoId} 
+            onChange={e => setSelectedVideoId(e.target.value)}
+          >
+            {devices.filter(d => d.kind === 'videoinput').map(d => (
+              <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${d.deviceId.substring(0, 5)}`}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Microphone</label>
+          <select 
+            className="w-full h-10 px-3 rounded-[6px] border border-stone-200 bg-white text-[14px] text-stone-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+            value={selectedAudioId} 
+            onChange={e => setSelectedAudioId(e.target.value)}
+          >
+            {devices.filter(d => d.kind === 'audioinput').map(d => (
+              <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${d.deviceId.substring(0, 5)}`}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {!isTesting ? (
         <div className="text-center py-10 bg-stone-50 border border-stone-200 rounded-[8px]">
           <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
@@ -194,7 +255,7 @@ export function DeviceTester() {
               </div>
               <Button variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50" onClick={stopTest}>Stop Test</Button>
             </div>
-            <div className="mt-2 aspect-video bg-stone-900 rounded-[8px] overflow-hidden flex items-center justify-center">
+            <div className="mt-2 aspect-video bg-stone-900 rounded-[8px] overflow-hidden flex items-center justify-center relative">
               <video
                 ref={videoRef}
                 autoPlay

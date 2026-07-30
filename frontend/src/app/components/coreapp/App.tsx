@@ -124,14 +124,17 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
         />;
       case "pre-call":
         // Device check step before entering the actual meeting
-        return <PreCallDeviceCheckView onJoinNow={() => {
-          const userId = useAuthStore.getState().user?.id;
-          if (activeMeeting?.hostId === userId) {
-            setCurrentView("live");
-          } else {
-            setCurrentView("waiting-guest");
-          }
-        }} />;
+        return <PreCallDeviceCheckView 
+          onJoinNow={() => {
+            const userId = useAuthStore.getState().user?.id;
+            if (activeMeeting?.hostId === userId) {
+              setCurrentView("live");
+            } else {
+              setCurrentView("waiting-guest");
+            }
+          }} 
+          onBack={() => setCurrentView("dashboard")}
+        />;
       case "waiting-guest":
         return <WaitingRoomGuestView meeting={activeMeeting} onLeave={() => setCurrentView("dashboard")} />;
       case "waiting-host":

@@ -4,6 +4,7 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
+import { DeviceTester } from "./DeviceTester";
 
 export function JoinMeetingView({ onJoin, onBack }: { onJoin: (meeting: any) => void; onBack: () => void }) {
   const [joinCode, setJoinCode] = useState("");
@@ -71,59 +72,27 @@ export function JoinMeetingView({ onJoin, onBack }: { onJoin: (meeting: any) => 
   );
 }
 
-export function PreCallDeviceCheckView({ onJoinNow }: { onJoinNow: () => void }) {
+export function PreCallDeviceCheckView({ onJoinNow, onBack }: { onJoinNow: () => void, onBack?: () => void }) {
   return (
     <div className="min-h-screen bg-[#14120F] flex items-center justify-center p-6 relative">
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 relative aspect-video bg-black rounded-[16px] overflow-hidden border border-stone-800 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
-          {/* Camera preview mock */}
-          <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800" alt="Camera preview" className="w-full h-full object-cover" />
-          
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4">
-            <button className="w-12 h-12 rounded-full bg-stone-900/80 backdrop-blur-md flex items-center justify-center text-white hover:bg-stone-800 transition-colors border border-stone-700/50">
-              <Mic className="w-5 h-5" />
-            </button>
-            <button className="w-12 h-12 rounded-full bg-stone-900/80 backdrop-blur-md flex items-center justify-center text-white hover:bg-stone-800 transition-colors border border-stone-700/50">
-              <Video className="w-5 h-5" />
-            </button>
-          </div>
+      {onBack && (
+        <div className="absolute top-8 left-8">
+          <Button variant="ghost" onClick={onBack} className="text-stone-400 hover:text-white hover:bg-stone-800">
+            &larr; Back
+          </Button>
         </div>
-
-        <div className="bg-[#1A1712] border border-stone-800/80 rounded-[16px] p-6 text-stone-100 flex flex-col">
-          <h2 className="text-[20px] font-semibold mb-6 tracking-tight">Ready to join?</h2>
-          
-          <div className="space-y-6 flex-1">
-            <div>
-              <label className="block text-[13px] font-medium text-stone-400 mb-2">Microphone</label>
-              <div className="flex items-center justify-between px-3 py-2.5 border border-stone-800 rounded-[6px] bg-[#14120F]">
-                <span className="text-[14px]">MacBook Pro Microphone</span>
-                <ChevronDown className="w-4 h-4 text-stone-500" />
-              </div>
-              <div className="flex items-center gap-1 mt-3">
-                {[...Array(15)].map((_, i) => (
-                  <div key={i} className={`h-1.5 w-1.5 rounded-full ${i < 5 ? 'bg-emerald-500' : 'bg-stone-800'}`}></div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-stone-400 mb-2">Camera</label>
-              <div className="flex items-center justify-between px-3 py-2.5 border border-stone-800 rounded-[6px] bg-[#14120F]">
-                <span className="text-[14px]">FaceTime HD Camera</span>
-                <ChevronDown className="w-4 h-4 text-stone-500" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[13px] font-medium text-stone-400 mb-2">Speaker</label>
-              <div className="flex items-center justify-between px-3 py-2.5 border border-stone-800 rounded-[6px] bg-[#14120F]">
-                <span className="text-[14px]">MacBook Pro Speakers</span>
-                <ChevronDown className="w-4 h-4 text-stone-500" />
-              </div>
-            </div>
+      )}
+      <div className="w-full max-w-5xl bg-[#1A1712] border border-stone-800/80 rounded-[16px] p-8 shadow-2xl">
+        <h2 className="text-[24px] font-semibold text-white mb-8 tracking-tight text-center">Ready to join?</h2>
+        
+        <div className="max-w-3xl mx-auto">
+          {/* We reuse the actual DeviceTester logic so the user can test their devices fully before joining */}
+          <div className="bg-white rounded-xl p-6 mb-8">
+             <DeviceTester />
           </div>
-
-          <Button className="w-full mt-6 h-12 text-[15px]" onClick={onJoinNow}>Join Now</Button>
+          <Button className="w-full h-14 text-[16px] bg-emerald-600 hover:bg-emerald-700 text-white font-medium" onClick={onJoinNow}>
+            Join Meeting Now
+          </Button>
         </div>
       </div>
     </div>
