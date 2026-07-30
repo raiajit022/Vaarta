@@ -24,11 +24,19 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
 
   const isPast = (m: any) => {
     if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
-    if (m.createdAt) {
-      const createdDate = new Date(m.createdAt).getTime();
+    
+    if (!m.scheduledStart) {
+      // Instant meeting: past if older than 1 hour
+      if (m.createdAt) {
+        const createdDate = new Date(m.createdAt).getTime();
+        const now = new Date().getTime();
+        if ((now - createdDate) / (1000 * 60 * 60) > 1) return true;
+      }
+    } else {
+      // Scheduled meeting: past if it started more than 1 hour ago
+      const scheduledDate = new Date(m.scheduledStart).getTime();
       const now = new Date().getTime();
-      const hoursDiff = (now - createdDate) / (1000 * 60 * 60);
-      if (hoursDiff > 12) return true;
+      if ((now - scheduledDate) / (1000 * 60 * 60) > 1) return true;
     }
     return false;
   };
