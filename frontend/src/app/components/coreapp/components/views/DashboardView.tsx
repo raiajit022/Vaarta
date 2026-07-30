@@ -23,6 +23,7 @@ export function DashboardView({
   onCreateMeeting: () => void;
   onJoinMeeting: () => void;
   onScheduleMeeting: () => void;
+  onJoinDirectly?: (meeting: any) => void;
 }) {
   const { user } = useAuthStore();
   const displayName = user?.fullName || user?.email.split('@')[0] || 'User';
@@ -102,8 +103,8 @@ export function DashboardView({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="secondary" className="h-8">Details</Button>
-                  <Button className="h-8">Join Now</Button>
+                  <Button variant="secondary" className="h-8" onClick={() => setSelectedMeeting(m)}>Details</Button>
+                  <Button className="h-8" onClick={() => onJoinDirectly && onJoinDirectly(m)}>Join Now</Button>
                 </div>
               </Card>
             ))}

@@ -5,15 +5,15 @@ import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 
-export function JoinMeetingView({ onJoin }: { onJoin: () => void }) {
+export function JoinMeetingView({ onJoin }: { onJoin: (meeting: any) => void }) {
   const [joinCode, setJoinCode] = useState("");
   const { joinMeeting, isLoading, error } = useMeetingStore();
 
   const handleJoin = async () => {
     if (!joinCode.trim()) return;
     try {
-      await joinMeeting(joinCode.trim());
-      onJoin();
+      const meeting = await joinMeeting(joinCode.trim());
+      onJoin(meeting);
     } catch (e) {
       console.error("Failed to join meeting", e);
     }

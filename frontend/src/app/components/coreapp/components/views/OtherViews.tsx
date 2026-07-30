@@ -5,6 +5,8 @@ import { Input } from "../ui/Input";
 import { Calendar, Video, Clock, Users, Search, Play, Phone, Mail, Settings, User, Bell, Shield, Copy, Plus, X } from "lucide-react";
 import { useAuthStore } from "../../../../store/useAuthStore";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
+import { DeviceTester } from "./DeviceTester";
+import { userClient } from "../../../../apiClient";
 
 /**
  * Displays a list of upcoming and past meetings.
@@ -34,13 +36,13 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
       </div>
 
       <div className="mb-6 flex gap-4 border-b border-stone-200">
-        <button 
+        <button
           onClick={() => setActiveTab("upcoming")}
           className={`px-4 py-2 text-[14px] font-medium transition-colors ${activeTab === "upcoming" ? "text-emerald-600 border-b-2 border-emerald-600" : "text-stone-500 hover:text-stone-900"}`}
         >
           Upcoming
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab("past")}
           className={`px-4 py-2 text-[14px] font-medium transition-colors ${activeTab === "past" ? "text-emerald-600 border-b-2 border-emerald-600" : "text-stone-500 hover:text-stone-900"}`}
         >
@@ -75,7 +77,7 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
             ))}
           </>
         )}
-        
+
         {activeTab === "past" && (
           <>
             {!isLoading && pastMeetings.length === 0 && <p className="text-stone-500">No past meetings.</p>}
@@ -105,57 +107,58 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
 }
 
 /**
- * Displays recorded meetings and their transcripts.
- * Currently a placeholder UI.
- */
-export function RecordingsView() {
-  return (
-    <div className="p-8 max-w-6xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Recordings</h1>
-          <p className="text-[15px] text-stone-500">Review past meetings and transcripts.</p>
-        </div>
-        <div className="w-72">
-          <Input icon={<Search className="w-4 h-4" />} placeholder="Search recordings..." />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[
-          { title: "Design Review: Mobile App", date: "Oct 24, 2023", duration: "45m", img: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400" },
-          { title: "Q3 Planning Session", date: "Oct 22, 2023", duration: "1h 15m", img: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&q=80&w=400" },
-          { title: "All Hands Meeting", date: "Oct 20, 2023", duration: "50m", img: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=400" },
-        ].map((rec, i) => (
-          <Card key={i} className="overflow-hidden group cursor-pointer hover:shadow-[0_8px_30px_rgb(28,25,23,0.08)] transition-all">
-            <div className="relative aspect-video bg-stone-100 overflow-hidden">
-              <img src={rec.img} alt={rec.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-stone-900/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-stone-900">
-                  <Play className="w-5 h-5 ml-1" />
-                </div>
-              </div>
-              <div className="absolute bottom-3 right-3 bg-stone-900/80 backdrop-blur-md text-white text-[12px] font-medium px-2 py-1 rounded">
-                {rec.duration}
-              </div>
-            </div>
-            <div className="p-4">
-              <h3 className="font-medium text-stone-900 text-[15px] mb-1 line-clamp-1">{rec.title}</h3>
-              <p className="text-[13px] text-stone-500">{rec.date}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Displays a directory of user contacts and frequent collaborators.
- * Currently a placeholder UI with mock data.
+ * Displays a directory of user contacts.
  */
 export function ContactsView() {
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Form state
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
+  const fetchContacts = async () => {
+    try {
+      setIsLoading(true);
+      const res = await userClient.get('/api/users/contacts');
+      setContacts(res.data);
+    } catch (e) {
+      console.error("Failed to fetch contacts", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const handleAddContact = async () => {
+    if (!email.trim()) return;
+    try {
+      const name = `${firstName} ${lastName}`.trim();
+      await userClient.post('/api/users/contacts', { email, name });
+      setIsAddContactModalOpen(false);
+      setEmail("");
+      setFirstName("");
+      setLastName("");
+      fetchContacts();
+    } catch (e) {
+      console.error("Failed to add contact", e);
+    }
+  };
+
+  const handleDeleteContact = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this contact?")) return;
+    try {
+      await userClient.delete(`/api/users/contacts/${id}`);
+      fetchContacts();
+    } catch (e) {
+      console.error("Failed to delete contact", e);
+    }
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full relative">
@@ -174,32 +177,29 @@ export function ContactsView() {
           <Input icon={<Search className="w-4 h-4" />} placeholder="Search by name, email, or role..." className="max-w-md" />
         </div>
         <div className="divide-y divide-stone-100">
-          {[
-            { name: "Michael Chen", role: "Engineering Lead", email: "m.chen@vaarta.com", img: "https://i.pravatar.cc/150?u=1" },
-            { name: "Emma Watson", role: "Product Designer", email: "emma.w@vaarta.com", img: "https://i.pravatar.cc/150?u=2" },
-            { name: "David Kim", role: "Marketing Director", email: "david.k@vaarta.com", img: "https://i.pravatar.cc/150?u=3" },
-            { name: "Sarah Jenkins", role: "Product Manager", email: "sarah.j@vaarta.com", img: "https://i.pravatar.cc/150?u=4" },
-            { name: "Alex Rivera", role: "Sales Executive", email: "arivera@vaarta.com", img: "https://i.pravatar.cc/150?u=5" },
-          ].map((contact, i) => (
+          {isLoading && <div className="p-4 text-stone-500">Loading contacts...</div>}
+          {!isLoading && contacts.length === 0 && <div className="p-4 text-stone-500">No contacts added yet.</div>}
+          {contacts.map((contact, i) => (
             <div key={i} className="p-4 flex items-center justify-between hover:bg-stone-50 transition-colors">
               <div className="flex items-center gap-4">
-                <img src={contact.img} alt={contact.name} className="w-10 h-10 rounded-full" />
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-medium">
+                  {contact.contactName ? contact.contactName.charAt(0).toUpperCase() : contact.contactEmail.charAt(0).toUpperCase()}
+                </div>
                 <div>
-                  <p className="text-[15px] font-medium text-stone-900">{contact.name}</p>
-                  <p className="text-[13px] text-stone-500">{contact.role}</p>
+                  <p className="text-[15px] font-medium text-stone-900">{contact.contactName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-8">
-                <span className="text-[14px] text-stone-500 hidden md:block w-48 truncate">{contact.email}</span>
+                <span className="text-[14px] text-stone-500 hidden md:block w-48 truncate">{contact.contactEmail}</span>
                 <div className="flex items-center gap-2">
                   <button className="w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 shadow-sm flex items-center justify-center transition-colors">
-                    <Video className="w-4 h-4" />
-                  </button>
-                  <button className="w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 shadow-sm flex items-center justify-center transition-colors">
-                    <Phone className="w-4 h-4" />
-                  </button>
-                  <button className="w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 shadow-sm flex items-center justify-center transition-colors">
                     <Mail className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteContact(contact.id)}
+                    className="w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 shadow-sm flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -222,26 +222,22 @@ export function ContactsView() {
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Email Address</label>
-                <Input placeholder="e.g. jane@vaarta.com" />
+                <Input placeholder="e.g. jane@vaarta.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[13px] font-medium text-stone-700 mb-1.5">First Name</label>
-                  <Input placeholder="Jane" />
+                  <Input placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Last Name</label>
-                  <Input placeholder="Doe" />
+                  <Input placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </div>
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Company or Role (Optional)</label>
-                <Input placeholder="e.g. Design Director" />
               </div>
             </div>
             <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
               <Button variant="ghost" onClick={() => setIsAddContactModalOpen(false)}>Cancel</Button>
-              <Button onClick={() => setIsAddContactModalOpen(false)}>Add Contact</Button>
+              <Button onClick={handleAddContact}>Add Contact</Button>
             </div>
           </Card>
         </div>
@@ -319,7 +315,7 @@ export function SettingsView() {
                 <p className="text-[13px] text-stone-500">Provide a direct URL to your avatar.</p>
               </div>
             </div>
-            
+
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div>
@@ -355,44 +351,7 @@ export function SettingsView() {
         return (
           <Card className="p-6">
             <h2 className="text-[16px] font-semibold text-stone-900 mb-6">Audio & Video Settings</h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Camera</label>
-                <select className="w-full h-10 rounded-[6px] border border-stone-200 bg-white px-3 text-[14px] text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
-                  <option>FaceTime HD Camera (Built-in)</option>
-                  <option>External 1080p Webcam</option>
-                </select>
-                <div className="mt-3 aspect-video bg-stone-100 rounded-[8px] border border-stone-200 flex items-center justify-center relative overflow-hidden">
-                   <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800" alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              </div>
-              <div className="pt-6 border-t border-stone-100">
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Microphone</label>
-                <div className="flex gap-3 mb-3">
-                  <select className="flex-1 h-10 rounded-[6px] border border-stone-200 bg-white px-3 text-[14px] text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
-                    <option>MacBook Pro Microphone</option>
-                    <option>External USB Mic</option>
-                  </select>
-                  <Button variant="secondary">Test Mic</Button>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[12px] text-stone-500 w-12">Input</span>
-                  {[...Array(15)].map((_, i) => (
-                    <div key={i} className={`h-1.5 w-1.5 rounded-full ${i < 6 ? 'bg-emerald-500' : 'bg-stone-200'}`}></div>
-                  ))}
-                </div>
-              </div>
-              <div className="pt-6 border-t border-stone-100">
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Speaker</label>
-                <div className="flex gap-3">
-                  <select className="flex-1 h-10 rounded-[6px] border border-stone-200 bg-white px-3 text-[14px] text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
-                    <option>MacBook Pro Speakers</option>
-                    <option>External Headphones</option>
-                  </select>
-                  <Button variant="secondary">Test Speaker</Button>
-                </div>
-              </div>
-            </div>
+            <DeviceTester />
           </Card>
         );
       case "notifications":
@@ -471,7 +430,7 @@ export function SettingsView() {
             { id: "notifications", icon: Bell, label: "Notifications" },
             { id: "security", icon: Shield, label: "Security" },
           ].map((item) => (
-            <button 
+            <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-[6px] text-[14px] font-medium transition-colors ${activeTab === item.id ? "bg-emerald-50 text-emerald-700" : "text-stone-600 hover:bg-stone-100"}`}
@@ -482,7 +441,7 @@ export function SettingsView() {
           ))}
         </nav>
       </div>
-      
+
       <div className="flex-1 max-w-2xl space-y-6">
         {renderTabContent()}
       </div>

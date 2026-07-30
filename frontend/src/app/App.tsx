@@ -20,7 +20,7 @@ type AuthMode = 'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'r
 
 export default function App() {
   const { isDark, setIsDark } = useTheme();
-  
+
   const { isAuthenticated, setAuth, logout } = useAuthStore();
 
   const [authMode, setAuthMode] = useState<AuthMode>('landing');
@@ -30,7 +30,7 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [terms, setTerms] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [submitted, setSubmitted] = useState(false);
@@ -61,7 +61,7 @@ export default function App() {
       // If already authenticated and not on a special link, jump straight in
       // but only if we are currently trying to show landing or login
       if (authMode === 'landing' || authMode === 'login' || authMode === 'register') {
-         // No need to set authMode, `if (isAuthenticated)` handles the render
+        // No need to set authMode, `if (isAuthenticated)` handles the render
       }
     }
   }, [isAuthenticated, authMode]);
@@ -159,8 +159,8 @@ export default function App() {
       if (err.response?.data?.fields) {
         setErrors(err.response.data.fields);
       } else {
-        setErrors({ 
-          general: err.response?.data?.message || "An unexpected error occurred. Please try again." 
+        setErrors({
+          general: err.response?.data?.message || "An unexpected error occurred. Please try again."
         });
       }
     } finally {
@@ -187,7 +187,7 @@ export default function App() {
       <CoreApp
         onSignOut={() => {
           logout();
-          authClient.post('/api/auth/logout').catch(() => {}); // fire and forget (optional if backend adds logout)
+          authClient.post('/api/auth/logout').catch(() => { }); // fire and forget (optional if backend adds logout)
           switchMode('login');
         }}
       />
@@ -196,11 +196,11 @@ export default function App() {
 
   if (authMode === 'landing') {
     return (
-      <LandingPage 
-        isDark={isDark} 
-        setIsDark={setIsDark} 
-        onSignIn={() => switchMode('login')} 
-        onGetStarted={() => switchMode('register')} 
+      <LandingPage
+        isDark={isDark}
+        setIsDark={setIsDark}
+        onSignIn={() => switchMode('login')}
+        onGetStarted={() => switchMode('register')}
       />
     );
   }
@@ -231,7 +231,7 @@ export default function App() {
           <div className="w-full max-w-[420px]">
             <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[16px] shadow-[0_8px_30px_rgb(28,25,23,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] overflow-hidden">
               <div className="p-8">
-                
+
                 {errors.general && (
                   <div className="mb-6 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md text-red-600 dark:text-red-400 text-sm">
                     {errors.general}
@@ -259,10 +259,10 @@ export default function App() {
                   <>
                     <div className="mb-8">
                       <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-white mb-2">
-                        {submitted 
-                          ? "Check your email" 
-                          : authMode === 'register' 
-                            ? "Create your account" 
+                        {submitted
+                          ? "Check your email"
+                          : authMode === 'register'
+                            ? "Create your account"
                             : authMode === 'forgot'
                               ? "Forgot password?"
                               : authMode === 'reset'
@@ -272,8 +272,8 @@ export default function App() {
                       <p className="text-[14px] leading-relaxed text-stone-500 dark:text-stone-400">
                         {submitted
                           ? "We sent a secure link to your workspace. You can safely close this window."
-                          : authMode === 'register' 
-                            ? "Join your team's workspace on Vaarta." 
+                          : authMode === 'register'
+                            ? "Join your team's workspace on Vaarta."
                             : authMode === 'forgot'
                               ? "No worries, we'll send you reset instructions. Please enter your work email."
                               : authMode === 'reset'

@@ -4,7 +4,7 @@ import { DashboardView } from "./components/views/DashboardView";
 import { CreateMeetingModal, MeetingCreatedModal, ScheduleMeetingModal } from "./components/views/Modals";
 import { JoinMeetingView, PreCallDeviceCheckView, WaitingRoomGuestView, WaitingRoomHostView } from "./components/views/MeetingViews";
 import { LiveMeetingView } from "./components/views/LiveMeetingView";
-import { MeetingsView, RecordingsView, ContactsView, SettingsView } from "./components/views/OtherViews";
+import { MeetingsView, ContactsView, SettingsView } from "./components/views/OtherViews";
 import { AdminLayout } from "../admin/AdminLayout";
 import { AdminUsersPage } from "../admin/AdminUsersPage";
 import { AdminMeetingsPage } from "../admin/AdminMeetingsPage";
@@ -35,8 +35,16 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
     return () => window.removeEventListener('admit-guest', handleAdmitGuest);
   }, [fetchProfile]);
 
-  const handleCreateMeeting = () => {
-    setIsCreateModalOpen(true);
+  const handleCreateMeeting = async () => {
+    try {
+      const { createMeeting } = useMeetingStore.getState();
+      const meeting = await createMeeting("Instant Meeting");
+      setActiveMeeting(meeting);
+      setCurrentView("pre-call");
+    } catch (e) {
+      console.error("Failed to create instant meeting", e);
+      alert("Failed to create meeting. Please try again.");
+    }
   };
 
   const handleScheduleMeeting = () => {
@@ -66,10 +74,14 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
           <div className="flex-1 flex flex-col min-w-0 bg-[#faf9f7]">
             <TopNav onAvatarClick={() => setCurrentView("settings")} />
             <div className="flex-1 overflow-auto">
-              <DashboardView 
-                onCreateMeeting={handleCreateMeeting} 
+              <DashboardView
+                onCreateMeeting={handleCreateMeeting}
                 onJoinMeeting={handleJoinMeeting}
                 onScheduleMeeting={handleScheduleMeeting}
+                onJoinDirectly={(meeting) => {
+                  setActiveMeeting(meeting);
+                  setCurrentView("pre-call");
+                }}
               />
             </div>
           </div>
@@ -80,15 +92,6 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
             <TopNav onAvatarClick={() => setCurrentView("settings")} />
             <div className="flex-1 overflow-auto">
               <MeetingsView onScheduleMeeting={handleScheduleMeeting} />
-            </div>
-          </div>
-        );
-      case "recordings":
-        return (
-          <div className="flex-1 flex flex-col min-w-0 bg-[#faf9f7]">
-            <TopNav onAvatarClick={() => setCurrentView("settings")} />
-            <div className="flex-1 overflow-auto">
-              <RecordingsView />
             </div>
           </div>
         );
@@ -111,7 +114,10 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
           </div>
         );
       case "join":
-        return <JoinMeetingView onJoin={() => setCurrentView("pre-call")} />;
+        return <JoinMeetingView onJoin={(meeting) => {
+          setActiveMeeting(meeting);
+          setCurrentView("pre-call");
+        }} />;
       case "pre-call":
         // Device check step before entering the actual meeting
         return <PreCallDeviceCheckView onJoinNow={() => setCurrentView("waiting-guest")} />;
@@ -155,25 +161,25 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
 
       {/* Render shared modals globally to avoid duplicating them across cases */}
       {isCreateModalOpen && (
-        <CreateMeetingModal 
-          onClose={() => setIsCreateModalOpen(false)} 
-          onSuccess={handleMeetingCreated} 
+        <CreateMeetingModal
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={handleMeetingCreated}
         />
       )}
       {isScheduleModalOpen && (
-        <ScheduleMeetingModal 
-          onClose={() => setIsScheduleModalOpen(false)} 
-          onSuccess={handleMeetingCreated} 
+        <ScheduleMeetingModal
+          onClose={() => setIsScheduleModalOpen(false)}
+          onSuccess={handleMeetingCreated}
         />
       )}
       {isMeetingCreatedModalOpen && activeMeeting && (
-        <MeetingCreatedModal 
+        <MeetingCreatedModal
           meeting={activeMeeting}
-          onClose={() => setIsMeetingCreatedModalOpen(false)} 
-          onStart={handleStartMeeting} 
+          onClose={() => setIsMeetingCreatedModalOpen(false)}
+          onStart={handleStartMeeting}
         />
       )}
-      
+
       {onSignOut && (
         <button
           onClick={onSignOut}

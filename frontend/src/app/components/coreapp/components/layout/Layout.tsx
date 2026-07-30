@@ -18,7 +18,6 @@ export function Sidebar({ currentView, setView }: { currentView: string, setView
   const items = [
     { id: "dashboard", icon: Home, label: "Home" },
     { id: "meetings", icon: Calendar, label: "Meetings" },
-    { id: "recordings", icon: Video, label: "Recordings" },
     { id: "contacts", icon: Users, label: "Contacts" },
     { id: "settings", icon: Settings, label: "Settings" },
   ];
