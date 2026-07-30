@@ -13,8 +13,10 @@ import java.io.IOException;
 /**
  * Filter for securing internal API endpoints.
  *
- * <p>Validates the presence and correctness of the {@code X-Internal-Key} header
- * to ensure that only authorized internal microservices can access specific routes.
+ * <p>
+ * Validates the presence and correctness of the {@code X-Internal-Key} header
+ * to ensure that only authorized internal microservices can access specific
+ * routes.
  */
 @Component
 public class InternalApiKeyFilter extends OncePerRequestFilter {
@@ -24,11 +26,12 @@ public class InternalApiKeyFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
-        // Skip actuator endpoints for health checks
-        if (request.getRequestURI().startsWith("/actuator")) {
+        // Only enforce the internal API key on /internal/** endpoints.
+        // All other endpoints pass through to be secured by JWT or permitAll rules.
+        if (!request.getRequestURI().startsWith("/internal")) {
             filterChain.doFilter(request, response);
             return;
         }
