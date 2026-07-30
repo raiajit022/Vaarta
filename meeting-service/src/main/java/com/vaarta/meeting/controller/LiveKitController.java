@@ -42,24 +42,24 @@ public class LiveKitController {
     @Value("${livekit.url:ws://localhost:7880}")
     private String livekitUrl;
 
+    private String getCurrentUserId() {
+        return (String) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
     /**
      * Generates a signed LiveKit token for the authenticated user to join the specified meeting.
      *
      * @param id          the UUID of the meeting/room.
-     * @param userId      the UUID of the user requesting the token.
-     * @param userDetails the authenticated user's details.
      * @return a map containing the JWT token and the LiveKit WebSocket URL.
      */
     @GetMapping("/livekit-token")
-    public ResponseEntity<Map<String, String>> getLiveKitToken(
-            @PathVariable UUID id,
-            @RequestHeader(value = "X-User-Id") String userId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Map<String, String>> getLiveKitToken(@PathVariable UUID id) {
         
+        String userId = getCurrentUserId();
         // Default to participant role; host validation is handled in the meeting flow.
         boolean isHost = false;
 
-        String token = liveKitTokenService.generateToken(id, UUID.fromString(userId), userDetails.getUsername(), isHost);
+        String token = liveKitTokenService.generateToken(id, UUID.fromString(userId), "User", isHost);
 
         return ResponseEntity.ok(Map.of(
                 "token", token,
@@ -80,9 +80,9 @@ public class LiveKitController {
     @PostMapping("/remove-participant/{participantId}")
     public ResponseEntity<Void> removeParticipant(
             @PathVariable UUID id,
-            @PathVariable String participantId,
-            @RequestHeader(value = "X-User-Id") String hostUserId) throws IOException {
+            @PathVariable String participantId) throws IOException {
         
+        String hostUserId = getCurrentUserId();
         // We need the http/https url for RoomServiceClient, not ws/wss
         String httpUrl = livekitUrl.replace("ws://", "http://").replace("wss://", "https://");
         RoomServiceClient client = RoomServiceClient.createClient(httpUrl, apiKey, apiSecret);
@@ -102,9 +102,9 @@ public class LiveKitController {
     @PostMapping("/chat/bot")
     public ResponseEntity<Void> handleChatCommand(
             @PathVariable UUID id,
-            @RequestHeader(value = "X-User-Id") String userId,
             @RequestBody Map<String, String> payload) throws IOException {
         
+        String userId = getCurrentUserId();
         String message = payload.get("message");
         if (message == null || message.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
