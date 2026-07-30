@@ -27,7 +27,7 @@ export function ForgotScreen({
         value={email}
         onChange={(v) => {
           setEmail(v);
-          if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+          if (errors.email) setErrors((e) => ({ ...e, email: "" }));
         }}
         placeholder="name@company.com"
         autoComplete="email"

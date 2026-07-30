@@ -71,7 +71,7 @@ export function RegisterScreen({
         value={name}
         onChange={(v) => {
           setName(v);
-          if (errors.name) setErrors((e) => ({ ...e, name: undefined }));
+          if (errors.name) setErrors((e) => ({ ...e, name: "" }));
         }}
         placeholder="Jane Doe"
         autoComplete="name"
@@ -85,7 +85,7 @@ export function RegisterScreen({
         value={email}
         onChange={(v) => {
           setEmail(v);
-          if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+          if (errors.email) setErrors((e) => ({ ...e, email: "" }));
         }}
         placeholder="name@company.com"
         autoComplete="email"
@@ -117,7 +117,7 @@ export function RegisterScreen({
           value={password}
           onChange={(v) => {
             setPassword(v);
-            if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+            if (errors.password) setErrors((e) => ({ ...e, password: "" }));
           }}
           placeholder="••••••••"
           autoComplete="new-password"
@@ -133,7 +133,7 @@ export function RegisterScreen({
         value={confirmPassword}
         onChange={(v) => {
           setConfirmPassword(v);
-          if (errors.confirmPassword) setErrors((e) => ({ ...e, confirmPassword: undefined }));
+          if (errors.confirmPassword) setErrors((e) => ({ ...e, confirmPassword: "" }));
         }}
         placeholder="••••••••"
         autoComplete="new-password"
@@ -148,7 +148,7 @@ export function RegisterScreen({
             checked={terms}
             onChange={(e) => {
               setTerms(e.target.checked);
-              if (errors.terms) setErrors((err) => ({ ...err, terms: undefined }));
+              if (errors.terms) setErrors((err) => ({ ...err, terms: "" }));
             }}
             className="peer appearance-none w-4 h-4 border border-stone-300 dark:border-stone-700 rounded-[4px] bg-white dark:bg-[#1E1B16] checked:bg-emerald-600 checked:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all cursor-pointer"
           />

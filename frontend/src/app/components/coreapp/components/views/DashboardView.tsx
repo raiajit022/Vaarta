@@ -19,6 +19,7 @@ export function DashboardView({
   onCreateMeeting,
   onJoinMeeting,
   onScheduleMeeting,
+  onJoinDirectly,
 }: {
   onCreateMeeting: () => void;
   onJoinMeeting: () => void;

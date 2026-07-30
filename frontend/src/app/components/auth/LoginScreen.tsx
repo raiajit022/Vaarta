@@ -50,7 +50,7 @@ export function LoginScreen({
         value={email}
         onChange={(v) => {
           setEmail(v);
-          if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+          if (errors.email) setErrors((e) => ({ ...e, email: "" }));
         }}
         placeholder="name@company.com"
         autoComplete="email"
@@ -80,7 +80,7 @@ export function LoginScreen({
           value={password}
           onChange={(v) => {
             setPassword(v);
-            if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+            if (errors.password) setErrors((e) => ({ ...e, password: "" }));
           }}
           placeholder="••••••••"
           autoComplete="current-password"

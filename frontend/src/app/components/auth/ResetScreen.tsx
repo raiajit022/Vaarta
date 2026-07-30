@@ -33,7 +33,7 @@ export function ResetScreen({
           value={password}
           onChange={(v) => {
             setPassword(v);
-            if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+            if (errors.password) setErrors((e) => ({ ...e, password: "" }));
           }}
           placeholder="Create a new password"
           autoComplete="new-password"
@@ -49,7 +49,7 @@ export function ResetScreen({
         onChange={(v) => {
           setConfirmPassword(v);
           if (errors.confirmPassword)
-            setErrors((e) => ({ ...e, confirmPassword: undefined }));
+            setErrors((e) => ({ ...e, confirmPassword: "" }));
         }}
         placeholder="••••••••"
         autoComplete="new-password"
