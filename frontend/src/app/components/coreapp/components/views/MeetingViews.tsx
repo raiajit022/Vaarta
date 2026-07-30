@@ -130,7 +130,7 @@ export function PreCallDeviceCheckView({ onJoinNow }: { onJoinNow: () => void })
   );
 }
 
-export function WaitingRoomGuestView({ onLeave }: { onLeave: () => void }) {
+export function WaitingRoomGuestView({ meeting, onLeave }: { meeting?: any, onLeave: () => void }) {
   return (
     <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center p-6 text-center">
       <div className="max-w-md w-full">
@@ -142,7 +142,7 @@ export function WaitingRoomGuestView({ onLeave }: { onLeave: () => void }) {
         </div>
         <h2 className="text-[24px] font-semibold text-stone-900 tracking-tight mb-2">Waiting for the host</h2>
         <p className="text-[15px] text-stone-500 leading-relaxed mb-8">
-          You have joined <strong>Q3 Product Strategy Sync</strong>.<br />
+          You have joined <strong>{meeting?.title || "the meeting"}</strong>.<br />
           The host will let you in shortly.
         </p>
         <div className="flex justify-center gap-4">

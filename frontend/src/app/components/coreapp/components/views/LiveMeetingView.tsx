@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { LiveKitRoom, VideoConference, RoomAudioRenderer, useChat } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useMeetingStore } from "../../../../store/useMeetingStore";
+import { useAuthStore } from "../../../../store/useAuthStore";
 
 /**
  * A hidden component that listens to the LiveKit data channel for chat messages.
@@ -15,7 +16,7 @@ function BotChatListener({ meetingId }: { meetingId: string }) {
   useEffect(() => {
     if (chatMessages.length === 0) return;
     const latest = chatMessages[chatMessages.length - 1];
-    
+
     // Process only if it's new, originated from the local user, and starts with @bot
     if (latest.id !== lastProcessedId && latest.from?.isLocal && latest.message.trim().toLowerCase().startsWith("@bot")) {
       setLastProcessedId(latest.id);
@@ -39,6 +40,8 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
   const { fetchLiveKitToken } = useMeetingStore();
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const currentUser = useAuthStore(state => state.user);
+  const [showInvitePopup, setShowInvitePopup] = useState(() => currentUser?.id === meeting?.hostId);
 
   useEffect(() => {
     if (!meeting?.id) return;
@@ -58,7 +61,7 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
         <div>
           <span className="text-stone-400">Meeting Code:</span> <span className="font-mono font-medium">{meeting.joinCode}</span>
         </div>
-        <button 
+        <button
           onClick={() => {
             navigator.clipboard.writeText(meeting.joinCode);
             alert("Meeting code copied to clipboard!");
@@ -68,6 +71,51 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
           Copy
         </button>
       </div>
+      {/* Google Meet style "Your meeting's ready" popup */}
+      {showInvitePopup && (
+        <div className="absolute bottom-24 left-6 z-[100] bg-white rounded-xl shadow-2xl p-5 w-80 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="text-[16px] font-medium text-gray-900">Your meeting's ready</h3>
+            <button
+              onClick={() => setShowInvitePopup(false)}
+              className="text-gray-400 hover:text-gray-600 p-1 -mr-1 -mt-1 rounded-full hover:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </button>
+          </div>
+
+          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-2 px-4 flex items-center justify-center gap-2 font-medium text-sm transition-colors mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
+            Add others
+          </button>
+
+          <p className="text-xs text-gray-500 mb-2">
+            Or share this meeting link with others you want in the meeting
+          </p>
+
+          <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 mb-3">
+            <span className="flex-1 text-sm text-gray-700 truncate font-mono">
+              {window.location.origin}/join/{meeting.joinCode}
+            </span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/join/${meeting.joinCode}`);
+                alert("Meeting link copied to clipboard!");
+              }}
+              className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-200"
+              title="Copy joining link"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+            </button>
+          </div>
+
+          <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">
+            <svg className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+            <p>People who use this meeting link must get your permission before they can join.</p>
+          </div>
+        </div>
+      )}
+
       <LiveKitRoom
         video={true}
         audio={true}

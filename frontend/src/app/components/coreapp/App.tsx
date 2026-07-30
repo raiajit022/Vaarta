@@ -40,7 +40,8 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
     try {
       const meeting = await useMeetingStore.getState().createMeeting("Instant Meeting");
       setActiveMeeting(meeting);
-      setCurrentView("pre-call");
+      // For instant meeting, bypass device check and drop directly into the call
+      setCurrentView("live");
     } catch (e: any) {
       console.error("Failed to create instant meeting", e);
       alert("Failed to create meeting: " + (e.message || e));
@@ -123,9 +124,16 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
         />;
       case "pre-call":
         // Device check step before entering the actual meeting
-        return <PreCallDeviceCheckView onJoinNow={() => setCurrentView("waiting-guest")} />;
+        return <PreCallDeviceCheckView onJoinNow={() => {
+          const userId = useAuthStore.getState().user?.id;
+          if (activeMeeting?.hostId === userId) {
+            setCurrentView("live");
+          } else {
+            setCurrentView("waiting-guest");
+          }
+        }} />;
       case "waiting-guest":
-        return <WaitingRoomGuestView onLeave={() => setCurrentView("dashboard")} />;
+        return <WaitingRoomGuestView meeting={activeMeeting} onLeave={() => setCurrentView("dashboard")} />;
       case "waiting-host":
         return (
           <div className="flex-1 flex flex-col min-w-0 bg-[#faf9f7]">
