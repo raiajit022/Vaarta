@@ -53,7 +53,21 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
   }
 
   return (
-    <div className="h-screen w-screen bg-[#14120F]">
+    <div className="h-screen w-screen bg-[#14120F] relative">
+      <div className="absolute top-4 left-4 z-50 bg-stone-900/80 backdrop-blur text-white px-4 py-2 rounded-lg text-sm border border-stone-800 flex items-center gap-3">
+        <div>
+          <span className="text-stone-400">Meeting Code:</span> <span className="font-mono font-medium">{meeting.joinCode}</span>
+        </div>
+        <button 
+          onClick={() => {
+            navigator.clipboard.writeText(meeting.joinCode);
+            alert("Meeting code copied to clipboard!");
+          }}
+          className="bg-stone-800 hover:bg-stone-700 px-2 py-1 rounded text-xs transition-colors"
+        >
+          Copy
+        </button>
+      </div>
       <LiveKitRoom
         video={true}
         audio={true}

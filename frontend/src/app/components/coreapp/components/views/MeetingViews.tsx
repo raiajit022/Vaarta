@@ -5,7 +5,7 @@ import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 
-export function JoinMeetingView({ onJoin }: { onJoin: (meeting: any) => void }) {
+export function JoinMeetingView({ onJoin, onBack }: { onJoin: (meeting: any) => void; onBack: () => void }) {
   const [joinCode, setJoinCode] = useState("");
   const { joinMeeting, isLoading, error } = useMeetingStore();
 
@@ -21,6 +21,11 @@ export function JoinMeetingView({ onJoin }: { onJoin: (meeting: any) => void }) 
 
   return (
     <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center p-6 relative">
+      <div className="absolute top-8 left-8">
+        <Button variant="ghost" onClick={onBack} className="text-stone-500">
+          &larr; Back to Dashboard
+        </Button>
+      </div>
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
       <Card className="w-full max-w-[480px] p-8 relative z-10 shadow-[0_20px_60px_rgb(28,25,23,0.08)]">
         <div className="flex items-center gap-2 text-emerald-600 font-semibold text-xl tracking-tight justify-center mb-8">

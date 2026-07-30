@@ -9,6 +9,7 @@ import { AdminLayout } from "../admin/AdminLayout";
 import { AdminUsersPage } from "../admin/AdminUsersPage";
 import { AdminMeetingsPage } from "../admin/AdminMeetingsPage";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useMeetingStore } from "../../store/useMeetingStore";
 
 /**
  * Core application container component.
@@ -114,10 +115,13 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
           </div>
         );
       case "join":
-        return <JoinMeetingView onJoin={(meeting) => {
-          setActiveMeeting(meeting);
-          setCurrentView("pre-call");
-        }} />;
+        return <JoinMeetingView 
+          onJoin={(meeting) => {
+            setActiveMeeting(meeting);
+            setCurrentView("pre-call");
+          }} 
+          onBack={() => setCurrentView("dashboard")}
+        />;
       case "pre-call":
         // Device check step before entering the actual meeting
         return <PreCallDeviceCheckView onJoinNow={() => setCurrentView("waiting-guest")} />;
