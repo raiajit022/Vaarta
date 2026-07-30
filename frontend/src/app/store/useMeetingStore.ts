@@ -40,6 +40,9 @@ interface MeetingStore {
     /** Suggests an agenda based on a description */
     suggestAgenda: (description: string) => Promise<{title: string, agenda: string[]}>;
     
+    /** Invites participants to an existing meeting */
+    inviteParticipants: (meetingId: string, emails: string[]) => Promise<void>;
+
     /** Joins an existing meeting using its 9-character join code. */
     joinMeeting: (joinCode: string) => Promise<Meeting>;
 

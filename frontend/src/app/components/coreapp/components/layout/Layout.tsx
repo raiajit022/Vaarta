@@ -3,6 +3,7 @@ import { Home, Calendar, Video, Users, Settings, Search, Bell, ChevronDown, Shie
 import { cn } from "../../utils/cn";
 import { Input } from "../ui/Input";
 import { useAuthStore } from "../../../../store/useAuthStore";
+import { useMeetingStore } from "../../../../store/useMeetingStore";
 
 /**
  * Renders the main sidebar navigation.
@@ -70,6 +71,11 @@ export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
   const { user } = useAuthStore();
   const initial = user?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U';
 
+  const { meetings } = useMeetingStore();
+  const upcomingMeetings = meetings
+    .filter(m => m.status === 'SCHEDULED' && m.scheduledStart && new Date(m.scheduledStart) > new Date())
+    .sort((a, b) => new Date(a.scheduledStart!).getTime() - new Date(b.scheduledStart!).getTime());
+
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -103,20 +109,25 @@ export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
                 <button className="text-[12px] text-emerald-600 hover:text-emerald-700 font-medium">Mark all as read</button>
               </div>
               <div className="max-h-80 overflow-y-auto">
-                <div className="px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5"><Video className="w-4 h-4" /></div>
-                  <div>
-                    <p className="text-[13px] text-stone-900 leading-snug"><strong>David Kim</strong> invited you to <strong>Marketing Sync</strong></p>
-                    <p className="text-[12px] text-stone-500 mt-1">10 mins ago</p>
+                {upcomingMeetings.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-[13px] text-stone-500">
+                    No upcoming meetings
                   </div>
-                </div>
-                <div className="px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer flex gap-3 opacity-60">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Calendar className="w-4 h-4" /></div>
-                  <div>
-                    <p className="text-[13px] text-stone-900 leading-snug">Upcoming: <strong>Q3 Product Strategy Sync</strong> starts in 15 minutes.</p>
-                    <p className="text-[12px] text-stone-500 mt-1">15 mins ago</p>
-                  </div>
-                </div>
+                ) : (
+                  upcomingMeetings.map((meeting) => {
+                    const diffMins = Math.round((new Date(meeting.scheduledStart!).getTime() - new Date().getTime()) / 60000);
+                    const timeText = diffMins < 60 ? `starts in ${diffMins} mins` : `starts at ${new Date(meeting.scheduledStart!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                    return (
+                      <div key={meeting.id} className="px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Calendar className="w-4 h-4" /></div>
+                        <div>
+                          <p className="text-[13px] text-stone-900 leading-snug">Upcoming: <strong>{meeting.title}</strong></p>
+                          <p className="text-[12px] text-stone-500 mt-1">{timeText}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}

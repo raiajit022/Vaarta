@@ -37,11 +37,14 @@ function BotChatListener({ meetingId }: { meetingId: string }) {
  * @param props.onLeave Callback invoked when the user disconnects or leaves the room.
  */
 export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: () => void }) {
-  const { fetchLiveKitToken } = useMeetingStore();
+  const { fetchLiveKitToken, inviteParticipants } = useMeetingStore();
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const currentUser = useAuthStore(state => state.user);
   const [showInvitePopup, setShowInvitePopup] = useState(() => currentUser?.id === meeting?.hostId);
+  const [isInviting, setIsInviting] = useState(false);
+  const [emailsInput, setEmailsInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (!meeting?.id) return;
@@ -84,10 +87,54 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
             </button>
           </div>
 
-          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-2 px-4 flex items-center justify-center gap-2 font-medium text-sm transition-colors mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
-            Add others
-          </button>
+          {isInviting ? (
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Comma separated emails..."
+                value={emailsInput}
+                onChange={(e) => setEmailsInput(e.target.value)}
+                className="w-full text-sm px-3 py-2 border rounded mb-2 outline-none focus:border-blue-500"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsInviting(false)}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-full text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    const emails = emailsInput.split(',').map(e => e.trim()).filter(Boolean);
+                    if (emails.length === 0) return;
+                    setIsSending(true);
+                    try {
+                      await inviteParticipants(meeting.id, emails);
+                      setIsInviting(false);
+                      setEmailsInput("");
+                      setShowInvitePopup(false);
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsSending(false);
+                    }
+                  }}
+                  disabled={isSending}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {isSending ? 'Sending...' : 'Send Invites'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsInviting(true)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-2 px-4 flex items-center justify-center gap-2 font-medium text-sm transition-colors mb-4"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
+              Add others
+            </button>
+          )}
 
           <p className="text-xs text-gray-500 mb-2">
             Or share this meeting link with others you want in the meeting

@@ -77,6 +77,18 @@ public class MeetingController {
     }
 
     /**
+     * Sends invitations to a list of emails for an existing meeting.
+     */
+    @PostMapping("/{id}/invite")
+    public ResponseEntity<Void> inviteParticipants(@PathVariable UUID id, @RequestBody java.util.Map<String, java.util.List<String>> payload) {
+        java.util.List<String> emails = payload.get("emails");
+        if (emails != null && !emails.isEmpty()) {
+            meetingService.inviteParticipants(id, emails);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Ends a meeting. Only the host of the meeting can perform this action.
      *
      * @param id the UUID of the meeting to end.

@@ -132,6 +132,37 @@ public class MeetingService {
     }
 
     /**
+     * Sends email invitations to the specified list of emails for the given meeting.
+     */
+    public void inviteParticipants(UUID meetingId, java.util.List<String> emails) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        final String link = frontendUrl + "/join/" + meeting.getJoinCode();
+        final String title = meeting.getTitle();
+        final UUID mId = meeting.getId();
+        
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            for (String email : emails) {
+                try {
+                    restClient.post()
+                            .uri("/api/notifications/meeting-invite")
+                            .body(java.util.Map.of(
+                                    "recipientEmail", email.trim(),
+                                    "meetingTitle", title,
+                                    "joinLink", link,
+                                    "meetingId", mId
+                            ))
+                            .retrieve()
+                            .toBodilessEntity();
+                } catch (Exception e) {
+                    System.err.println("Failed to send invite to " + email + ": " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    /**
      * Retrieves all meetings associated with a user (as a host or participant).
      *
      * @param userId the UUID of the user.
