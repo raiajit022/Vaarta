@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 /**
  * Core business logic for meetings.
  *
- * <p>Handles the creation of meetings, generating unique join codes,
+ * <p>
+ * Handles the creation of meetings, generating unique join codes,
  * managing participant lists, and integrating with the notification-service
  * for asynchronous email invites.
  */
@@ -35,12 +36,12 @@ public class MeetingService {
     private String frontendUrl;
 
     public MeetingService(MeetingRepository meetingRepository,
-                          MeetingParticipantRepository participantRepository,
-                          JoinCodeGenerator joinCodeGenerator,
-                          org.springframework.web.client.RestClient.Builder restClientBuilder,
-                          @org.springframework.beans.factory.annotation.Value("${app.notification-service-url}") String notificationServiceUrl,
-                          @org.springframework.beans.factory.annotation.Value("${app.ai-service-url}") String aiServiceUrl,
-                          @org.springframework.beans.factory.annotation.Value("${app.internal-api-key}") String internalApiKey) {
+            MeetingParticipantRepository participantRepository,
+            JoinCodeGenerator joinCodeGenerator,
+            org.springframework.web.client.RestClient.Builder restClientBuilder,
+            @org.springframework.beans.factory.annotation.Value("${app.notification-service-url}") String notificationServiceUrl,
+            @org.springframework.beans.factory.annotation.Value("${app.ai-service-url}") String aiServiceUrl,
+            @org.springframework.beans.factory.annotation.Value("${app.internal-api-key}") String internalApiKey) {
         this.meetingRepository = meetingRepository;
         this.participantRepository = participantRepository;
         this.joinCodeGenerator = joinCodeGenerator;
@@ -55,9 +56,11 @@ public class MeetingService {
     }
 
     /**
-     * Creates a new meeting and optionally sends out email invitations asynchronously.
+     * Creates a new meeting and optionally sends out email invitations
+     * asynchronously.
      *
-     * @param request the meeting details (title, scheduled time, participant emails).
+     * @param request the meeting details (title, scheduled time, participant
+     *                emails).
      * @param hostId  the UUID of the user creating the meeting.
      * @return the created meeting details.
      */
@@ -72,22 +75,24 @@ public class MeetingService {
         meeting.setTitle(request.getTitle());
         meeting.setHostId(hostId);
         meeting.setJoinCode(joinCode);
-        
+
         if (request.getScheduledStart() != null) {
             meeting.setScheduledStart(request.getScheduledStart());
         }
-        
+
         // Save the agenda if provided (serialize as JSON list)
         if (request.getAgenda() != null && !request.getAgenda().isEmpty()) {
             try {
-                meeting.setAgenda(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request.getAgenda()));
+                meeting.setAgenda(
+                        new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request.getAgenda()));
             } catch (Exception e) {
                 // Ignore parsing errors for now
             }
         }
 
         // If it's an instant meeting (no scheduled start), start it now
-        if (request.getScheduledStart() == null || request.getScheduledStart().isBefore(ZonedDateTime.now().plusMinutes(1))) {
+        if (request.getScheduledStart() == null
+                || request.getScheduledStart().isBefore(ZonedDateTime.now().plusMinutes(1))) {
             meeting.setStatus(MeetingStatus.LIVE);
             meeting.setStartedAt(ZonedDateTime.now());
         }
@@ -106,7 +111,7 @@ public class MeetingService {
             final String link = frontendUrl + "/join/" + joinCode;
             final String title = request.getTitle();
             final UUID mId = meeting.getId();
-            
+
             // Send notifications asynchronously
             java.util.concurrent.CompletableFuture.runAsync(() -> {
                 for (String email : request.getParticipantEmails()) {
@@ -117,8 +122,7 @@ public class MeetingService {
                                         "recipientEmail", email.trim(),
                                         "meetingTitle", title,
                                         "joinLink", link,
-                                        "meetingId", mId
-                                ))
+                                        "meetingId", mId))
                                 .retrieve()
                                 .toBodilessEntity();
                     } catch (Exception e) {
@@ -132,7 +136,8 @@ public class MeetingService {
     }
 
     /**
-     * Sends email invitations to the specified list of emails for the given meeting.
+     * Sends email invitations to the specified list of emails for the given
+     * meeting.
      */
     public void inviteParticipants(UUID meetingId, java.util.List<String> emails) {
         Meeting meeting = meetingRepository.findById(meetingId)
@@ -141,7 +146,7 @@ public class MeetingService {
         final String link = frontendUrl + "/join/" + meeting.getJoinCode();
         final String title = meeting.getTitle();
         final UUID mId = meeting.getId();
-        
+
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             for (String email : emails) {
                 try {
@@ -151,8 +156,7 @@ public class MeetingService {
                                     "recipientEmail", email.trim(),
                                     "meetingTitle", title,
                                     "joinLink", link,
-                                    "meetingId", mId
-                            ))
+                                    "meetingId", mId))
                             .retrieve()
                             .toBodilessEntity();
                 } catch (Exception e) {
@@ -197,7 +201,8 @@ public class MeetingService {
      * @param joinCode the 9-character code for the meeting.
      * @param userId   the UUID of the user joining.
      * @return the meeting details.
-     * @throws RuntimeException if the meeting does not exist, or is cancelled/ended.
+     * @throws RuntimeException if the meeting does not exist, or is
+     *                          cancelled/ended.
      */
     @Transactional
     public MeetingResponse joinMeeting(String joinCode, UUID userId) {
@@ -261,10 +266,10 @@ public class MeetingService {
                     .uri("/agents/invoke")
                     .body(java.util.Map.of(
                             "agentType", "SUMMARIZER",
-                            "meetingId", id.toString()
-                    ))
+                            "meetingId", id.toString()))
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {
+                    });
 
             if (response != null && response.containsKey("summary")) {
                 meeting.setSummary((String) response.get("summary"));
@@ -294,10 +299,10 @@ public class MeetingService {
                     .uri("/agents/invoke")
                     .body(java.util.Map.of(
                             "agentType", "ACTION_ITEMS",
-                            "meetingId", id.toString()
-                    ))
+                            "meetingId", id.toString()))
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {
+                    });
 
             if (response != null && response.containsKey("actionItems")) {
                 meeting.setActionItems((String) response.get("actionItems"));
@@ -327,10 +332,10 @@ public class MeetingService {
                     .uri("/agents/invoke")
                     .body(java.util.Map.of(
                             "agentType", "SENTIMENT",
-                            "meetingId", id.toString()
-                    ))
+                            "meetingId", id.toString()))
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {
+                    });
 
             if (response != null && response.containsKey("sentimentLabel")) {
                 meeting.setSentimentLabel((String) response.get("sentimentLabel"));
@@ -359,10 +364,10 @@ public class MeetingService {
                     .body(java.util.Map.of(
                             "agentType", "CHAT_COMMAND",
                             "meetingId", id.toString(),
-                            "payload", java.util.Map.of("user_command", userMessage)
-                    ))
+                            "payload", java.util.Map.of("user_command", userMessage)))
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {
+                    });
 
             if (response != null && response.containsKey("reply")) {
                 return (String) response.get("reply");
@@ -379,14 +384,27 @@ public class MeetingService {
                     .uri("/agents/invoke")
                     .body(java.util.Map.of(
                             "agentType", "AGENDA_GENERATOR",
-                            "payload", java.util.Map.of("description", description)
-                    ))
+                            "payload", java.util.Map.of("description", description)))
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {
+                    });
             return response;
         } catch (Exception e) {
             throw new RuntimeException("Failed to suggest agenda: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void deleteMeeting(UUID id, UUID userId) {
+        Meeting meeting = meetingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        if (!meeting.getHostId().equals(userId)) {
+            throw new RuntimeException("Only the host can delete the meeting");
+        }
+
+        participantRepository.deleteAll(participantRepository.findByMeetingId(id));
+        meetingRepository.delete(meeting);
     }
 
     private MeetingResponse mapToResponse(Meeting meeting) {

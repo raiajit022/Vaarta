@@ -34,8 +34,19 @@ export function DashboardView({
     fetchMyMeetings();
   }, [fetchMyMeetings]);
 
-  const upcomingMeetings = meetings.filter(m => m.status === 'SCHEDULED' || m.status === 'LIVE');
-  const pastMeetings = meetings.filter(m => m.status === 'ENDED' || m.status === 'CANCELLED');
+  const isPast = (m: any) => {
+    if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
+    if (m.createdAt) {
+      const createdDate = new Date(m.createdAt).getTime();
+      const now = new Date().getTime();
+      const hoursDiff = (now - createdDate) / (1000 * 60 * 60);
+      if (hoursDiff > 12) return true;
+    }
+    return false;
+  };
+
+  const upcomingMeetings = meetings.filter(m => !isPast(m));
+  const pastMeetings = meetings.filter(m => isPast(m));
 
   const [selectedMeeting, setSelectedMeeting] = React.useState<any>(null);
 

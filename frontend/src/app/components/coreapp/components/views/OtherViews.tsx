@@ -16,14 +16,31 @@ import { userClient } from "../../../../apiClient";
  */
 export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => void }) {
   const [activeTab, setActiveTab] = useState("upcoming");
-  const { meetings, fetchMyMeetings, isLoading } = useMeetingStore();
+  const { meetings, fetchMyMeetings, deleteMeeting, isLoading } = useMeetingStore();
 
   useEffect(() => {
     fetchMyMeetings();
   }, [fetchMyMeetings]);
 
-  const upcomingMeetings = meetings.filter(m => m.status === 'SCHEDULED' || m.status === 'LIVE');
-  const pastMeetings = meetings.filter(m => m.status === 'ENDED' || m.status === 'CANCELLED');
+  const isPast = (m: any) => {
+    if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
+    if (m.createdAt) {
+      const createdDate = new Date(m.createdAt).getTime();
+      const now = new Date().getTime();
+      const hoursDiff = (now - createdDate) / (1000 * 60 * 60);
+      if (hoursDiff > 12) return true;
+    }
+    return false;
+  };
+
+  const upcomingMeetings = meetings.filter(m => !isPast(m));
+  const pastMeetings = meetings.filter(m => isPast(m));
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this meeting?")) {
+      await deleteMeeting(id);
+    }
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
@@ -95,6 +112,9 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
                   </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
+                  <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(meeting.id)}>
+                    <X className="w-4 h-4 mr-1" /> Clear
+                  </Button>
                   <Button variant="secondary" className="flex-1 md:flex-none">View Details</Button>
                 </div>
               </Card>

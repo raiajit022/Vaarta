@@ -30,34 +30,38 @@ interface MeetingStore {
     meetings: Meeting[];
     isLoading: boolean;
     error: string | null;
-    
+
     /** Fetches the list of meetings the current user is a part of. */
     fetchMyMeetings: () => Promise<void>;
-    
+
     /** Creates a new meeting and optionally invites participants via email. */
     createMeeting: (title: string, scheduledStart?: string, participantEmails?: string[], agenda?: string[]) => Promise<Meeting>;
-    
+
     /** Suggests an agenda based on a description */
-    suggestAgenda: (description: string) => Promise<{title: string, agenda: string[]}>;
-    
+    suggestAgenda: (description: string) => Promise<{ title: string, agenda: string[] }>;
+
     /** Invites participants to an existing meeting */
     inviteParticipants: (meetingId: string, emails: string[]) => Promise<void>;
 
     /** Joins an existing meeting using its 9-character join code. */
     joinMeeting: (joinCode: string) => Promise<Meeting>;
 
+    /** Deletes a meeting */
+    deleteMeeting: (meetingId: string) => Promise<void>;
+
     /** Generates the summary for an ended meeting */
     generateSummary: (meetingId: string) => Promise<Meeting>;
 
+
     /** Generates the action items for an ended meeting */
     generateActionItems: (meetingId: string) => Promise<Meeting>;
-    
+
     /** Generates the sentiment for an ended meeting */
     generateSentiment: (meetingId: string) => Promise<Meeting>;
-    
+
     /** Retrieves the LiveKit JWT and WebSocket URL required to connect to a meeting room. */
     fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
-    
+
     /** Sends a chat command to the bot. */
     sendBotCommand: (meetingId: string, message: string) => Promise<void>;
 }
@@ -84,9 +88,9 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
                 participantEmails,
                 agenda
             });
-            set((state) => ({ 
+            set((state) => ({
                 meetings: [response.data, ...state.meetings],
-                isLoading: false 
+                isLoading: false
             }));
             return response.data;
         } catch (error: any) {
@@ -109,6 +113,19 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             return response.data;
         } catch (error: any) {
             set({ error: error.response?.data?.message || 'Failed to join meeting', isLoading: false });
+            throw error;
+        }
+    },
+    deleteMeeting: async (meetingId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            await meetingClient.delete(`/api/meetings/${meetingId}`);
+            set((state) => ({
+                meetings: state.meetings.filter(m => m.id !== meetingId),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || 'Failed to delete meeting', isLoading: false });
             throw error;
         }
     },

@@ -143,4 +143,17 @@ public class MeetingController {
         }
         return ResponseEntity.ok(meetingService.suggestAgenda(description));
     }
+
+    /**
+     * Deletes a meeting. Only the host of the meeting can perform this action.
+     *
+     * @param id the UUID of the meeting to delete.
+     * @return HTTP 200 OK on success.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMeeting(@PathVariable UUID id) {
+        UUID userId = getCurrentUserId();
+        meetingService.deleteMeeting(id, userId);
+        return ResponseEntity.ok().build();
+    }
 }
