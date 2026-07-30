@@ -18,10 +18,6 @@ export function DeviceTester() {
       setStream(s);
       setIsTesting(true);
       setError(null);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-      }
 
       // Audio analysis
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -67,6 +63,12 @@ export function DeviceTester() {
     setIsTesting(false);
     setVolume(0);
   };
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, isTesting]);
 
   useEffect(() => {
     return () => {
