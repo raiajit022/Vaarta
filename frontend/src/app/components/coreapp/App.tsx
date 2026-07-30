@@ -38,13 +38,12 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
 
   const handleCreateMeeting = async () => {
     try {
-      const { createMeeting } = useMeetingStore.getState();
-      const meeting = await createMeeting("Instant Meeting");
+      const meeting = await useMeetingStore.getState().createMeeting("Instant Meeting");
       setActiveMeeting(meeting);
       setCurrentView("pre-call");
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to create instant meeting", e);
-      alert("Failed to create meeting. Please try again.");
+      alert("Failed to create meeting: " + (e.message || e));
     }
   };
 

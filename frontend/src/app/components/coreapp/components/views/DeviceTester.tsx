@@ -24,7 +24,7 @@ export function DeviceTester() {
       analyzerRef.current = audioContextRef.current.createAnalyser();
       sourceRef.current = audioContextRef.current.createMediaStreamSource(s);
       sourceRef.current.connect(analyzerRef.current);
-      
+
       analyzerRef.current.fftSize = 256;
       const bufferLength = analyzerRef.current.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
@@ -40,7 +40,7 @@ export function DeviceTester() {
         setVolume(average);
         rafRef.current = requestAnimationFrame(updateVolume);
       };
-      
+
       updateVolume();
     } catch (err: any) {
       setError(err.message || "Could not access camera/microphone");
@@ -67,6 +67,7 @@ export function DeviceTester() {
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(e => console.error("Error playing video:", e));
     }
   }, [stream, isTesting]);
 
@@ -92,16 +93,16 @@ export function DeviceTester() {
               <Button variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50" onClick={stopTest}>Stop Test</Button>
             </div>
             <div className="mt-2 aspect-video bg-stone-900 rounded-[8px] overflow-hidden flex items-center justify-center">
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                className="w-full h-full object-cover transform -scale-x-100" 
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover transform scale-x-[-1]"
               />
             </div>
           </div>
-          
+
           <div className="pt-6 border-t border-stone-100">
             <label className="block text-[13px] font-medium text-stone-700 mb-3">Microphone Volume</label>
             <div className="flex items-center gap-2">
@@ -110,13 +111,12 @@ export function DeviceTester() {
                 {[...Array(15)].map((_, i) => {
                   const isActive = volume > (i * 5);
                   return (
-                    <div 
-                      key={i} 
-                      className={`h-full flex-1 rounded-full transition-colors duration-100 ${
-                        isActive 
-                          ? (i > 11 ? 'bg-red-500' : i > 8 ? 'bg-yellow-500' : 'bg-emerald-500') 
+                    <div
+                      key={i}
+                      className={`h-full flex-1 rounded-full transition-colors duration-100 ${isActive
+                          ? (i > 11 ? 'bg-red-500' : i > 8 ? 'bg-yellow-500' : 'bg-emerald-500')
                           : 'bg-stone-200'
-                      }`}
+                        }`}
                     ></div>
                   );
                 })}

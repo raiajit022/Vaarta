@@ -52,8 +52,8 @@ authClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't already retried this request
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // If error is 401 or 403 and we haven't already retried this request
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       if (isRefreshing) {
         // If already refreshing, wait for it to finish and retry
         try {
@@ -74,7 +74,7 @@ authClient.interceptors.response.use(
         // Attempt to refresh the token
         const refreshToken = useAuthStore.getState().refreshToken;
         if (!refreshToken) {
-            throw new Error("No refresh token available");
+          throw new Error("No refresh token available");
         }
 
         // Use a clean axios instance to avoid interceptor loops
@@ -138,7 +138,7 @@ userClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     // same refresh logic as authClient
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       if (isRefreshing) {
         try {
           const token = await new Promise((resolve, reject) => {
@@ -211,7 +211,7 @@ meetingClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     // same refresh logic as authClient
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       if (isRefreshing) {
         try {
           const token = await new Promise((resolve, reject) => {
