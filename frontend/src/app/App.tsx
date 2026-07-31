@@ -48,6 +48,8 @@ export default function App() {
     // Extract token using regex to bypass any nested routing wrappers
     const verifyMatch = decodedUrl.match(/\/verify-email\?token=([^&/#]+)/);
     const resetMatch = decodedUrl.match(/\/reset-password\?token=([^&/#]+)/);
+    const joinMatch = decodedUrl.match(/\/join\/([A-Z0-9-]+)/i);
+    const meetingMatch = decodedUrl.match(/\/meeting\/([A-Z0-9-]+)/i);
 
     if (verifyMatch) {
       setUrlToken(verifyMatch[1]);
@@ -57,6 +59,9 @@ export default function App() {
       setUrlToken(resetMatch[1]);
       setAuthMode('reset');
       window.history.replaceState({}, document.title, "/");
+    } else if (!isAuthenticated && (joinMatch || meetingMatch)) {
+      setAuthMode('login');
+      // Do not replace state; keep the URL so CoreApp picks it up after login
     } else if (isAuthenticated) {
       // If already authenticated and not on a special link, jump straight in
       // but only if we are currently trying to show landing or login

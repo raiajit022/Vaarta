@@ -31,6 +31,7 @@ public class MeetingService {
     private final JoinCodeGenerator joinCodeGenerator;
     private final org.springframework.web.client.RestClient restClient;
     private final org.springframework.web.client.RestClient aiRestClient;
+    private final org.springframework.web.client.RestClient authRestClient;
 
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url}")
     private String frontendUrl;
@@ -41,6 +42,7 @@ public class MeetingService {
             org.springframework.web.client.RestClient.Builder restClientBuilder,
             @org.springframework.beans.factory.annotation.Value("${app.notification-service-url}") String notificationServiceUrl,
             @org.springframework.beans.factory.annotation.Value("${app.ai-service-url}") String aiServiceUrl,
+            @org.springframework.beans.factory.annotation.Value("${app.auth-service-url}") String authServiceUrl,
             @org.springframework.beans.factory.annotation.Value("${app.internal-api-key}") String internalApiKey) {
         this.meetingRepository = meetingRepository;
         this.participantRepository = participantRepository;
@@ -51,6 +53,10 @@ public class MeetingService {
                 .build();
         this.aiRestClient = restClientBuilder.clone()
                 .baseUrl(aiServiceUrl)
+                .defaultHeader("X-Internal-Key", internalApiKey)
+                .build();
+        this.authRestClient = restClientBuilder.clone()
+                .baseUrl(authServiceUrl)
                 .defaultHeader("X-Internal-Key", internalApiKey)
                 .build();
     }
@@ -245,6 +251,72 @@ public class MeetingService {
         meeting.setStatus(MeetingStatus.ENDED);
         meeting.setEndedAt(ZonedDateTime.now());
         meetingRepository.save(meeting);
+
+        // Run recap and email pipeline asynchronously
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                // 1. Generate Summary
+                generateSummary(id, userId);
+                // 2. Generate Action Items
+                generateActionItems(id, userId);
+                // 3. Generate Sentiment
+                generateSentiment(id, userId);
+
+                // Fetch updated meeting
+                Meeting updated = meetingRepository.findById(id).orElseThrow();
+
+                // 4. Generate Follow-up email HTML via AI service
+                java.util.Map<String, Object> emailResponse = aiRestClient.post()
+                        .uri("/agents/invoke")
+                        .body(java.util.Map.of(
+                                "agentType", "FOLLOWUP_EMAIL",
+                                "meetingId", id.toString(),
+                                "payload", java.util.Map.of(
+                                        "title", updated.getTitle(),
+                                        "summary", updated.getSummary() != null ? updated.getSummary() : "",
+                                        "actionItems", updated.getActionItems() != null ? updated.getActionItems() : "",
+                                        "sentiment", updated.getSentimentLabel() != null ? updated.getSentimentLabel() : ""
+                                )
+                        ))
+                        .retrieve()
+                        .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+
+                String htmlBody = emailResponse != null && emailResponse.containsKey("emailHtml") ? (String) emailResponse.get("emailHtml") : null;
+                
+                if (htmlBody != null && !htmlBody.isEmpty()) {
+                    // 5. Fetch participant emails from auth service
+                    List<UUID> participantIds = participantRepository.findByMeetingId(id).stream()
+                            .map(MeetingParticipant::getUserId)
+                            .collect(Collectors.toList());
+                    
+                    if (!participantIds.isEmpty()) {
+                        java.util.Map<UUID, String> emailMap = authRestClient.post()
+                                .uri("/internal/users/emails")
+                                .body(java.util.Map.of("userIds", participantIds))
+                                .retrieve()
+                                .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<UUID, String>>() {});
+                                
+                        if (emailMap != null) {
+                            for (String email : emailMap.values()) {
+                                restClient.post()
+                                        .uri("/api/notifications/meeting-recap")
+                                        .body(java.util.Map.of(
+                                                "recipientEmail", email,
+                                                "meetingTitle", updated.getTitle(),
+                                                "htmlBody", htmlBody,
+                                                "meetingId", id
+                                        ))
+                                        .retrieve()
+                                        .toBodilessEntity();
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to process meeting recap: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
 
     @Transactional

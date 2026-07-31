@@ -28,6 +28,91 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
   const [activeMeeting, setActiveMeeting] = useState<any>(null);
   const { fetchProfile } = useAuthStore();
 
+  // --- URL-based routing ---
+
+  // Map view names to URL paths
+  const viewToPath = (view: string, meeting?: any): string => {
+    switch (view) {
+      case 'meetings': return '/meetings';
+      case 'contacts': return '/contacts';
+      case 'settings': return '/settings';
+      case 'join': return '/join';
+      case 'live': return meeting?.joinCode ? `/meeting/${meeting.joinCode}` : '/';
+      case 'pre-call': return meeting?.joinCode ? `/meeting/${meeting.joinCode}/lobby` : '/';
+      case 'admin-users': return '/admin/users';
+      case 'admin-meetings': return '/admin/meetings';
+      default: return '/';
+    }
+  };
+
+  // On mount: read the current URL and initialize the correct view
+  useEffect(() => {
+    const path = window.location.pathname;
+
+    const joinMatch = path.match(/^\/join\/([A-Z0-9-]+)$/i);
+    const meetingMatch = path.match(/^\/meeting\/([A-Z0-9-]+)/i);
+
+    if (joinMatch) {
+      const joinCode = joinMatch[1];
+      useMeetingStore.getState().joinMeeting(joinCode).then((meeting) => {
+        setActiveMeeting(meeting);
+        setCurrentView('pre-call');
+      }).catch(() => {
+        setCurrentView('dashboard');
+        window.history.replaceState({}, '', '/');
+      });
+    } else if (meetingMatch) {
+      const joinCode = meetingMatch[1];
+      // Fetch meetings and find the one with this join code
+      useMeetingStore.getState().fetchMyMeetings().then(() => {
+        const meetings = useMeetingStore.getState().meetings;
+        const found = meetings.find(m => m.joinCode === joinCode);
+        if (found) {
+          setActiveMeeting(found);
+          setCurrentView('live');
+        } else {
+          setCurrentView('dashboard');
+          window.history.replaceState({}, '', '/');
+        }
+      });
+    } else if (path === '/meetings') {
+      setCurrentView('meetings');
+    } else if (path === '/contacts') {
+      setCurrentView('contacts');
+    } else if (path === '/settings') {
+      setCurrentView('settings');
+    } else if (path === '/admin/users') {
+      setCurrentView('admin-users');
+    } else if (path === '/admin/meetings') {
+      setCurrentView('admin-meetings');
+    }
+    // else stays on dashboard (default)
+  }, []);
+
+  // Sync URL when currentView changes (push to history)
+  useEffect(() => {
+    const targetPath = viewToPath(currentView, activeMeeting);
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ view: currentView }, '', targetPath);
+    }
+  }, [currentView, activeMeeting]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/meetings') setCurrentView('meetings');
+      else if (path === '/contacts') setCurrentView('contacts');
+      else if (path === '/settings') setCurrentView('settings');
+      else if (path === '/admin/users') setCurrentView('admin-users');
+      else if (path === '/admin/meetings') setCurrentView('admin-meetings');
+      else if (path === '/join') setCurrentView('join');
+      else setCurrentView('dashboard');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   useEffect(() => {
     fetchProfile();
 

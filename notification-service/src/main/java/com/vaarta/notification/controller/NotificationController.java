@@ -2,6 +2,7 @@ package com.vaarta.notification.controller;
 
 import com.vaarta.notification.dto.SendInviteRequest;
 import com.vaarta.notification.dto.SendReminderRequest;
+import com.vaarta.notification.dto.SendRecapRequest;
 import com.vaarta.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,18 @@ public class NotificationController {
     @PostMapping("/meeting-reminder")
     public ResponseEntity<Void> sendMeetingReminder(@RequestBody SendReminderRequest request) {
         notificationService.sendMeetingReminder(request);
+        return ResponseEntity.accepted().build();
+    }
+
+    /**
+     * Sends a post-meeting recap/summary email to a participant.
+     *
+     * @param request details including recipient email, meeting title, and generated HTML body.
+     * @return HTTP 202 Accepted.
+     */
+    @PostMapping("/meeting-recap")
+    public ResponseEntity<Void> sendMeetingRecap(@RequestBody SendRecapRequest request) {
+        notificationService.sendMeetingRecap(request);
         return ResponseEntity.accepted().build();
     }
 }

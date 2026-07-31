@@ -28,6 +28,60 @@ function BotChatListener({ meetingId }: { meetingId: string }) {
   return null;
 }
 
+function AIAssistantPanel() {
+  const { send } = useChat();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleCommand = (cmd: string) => {
+    if (send) {
+      send(cmd).catch(console.error);
+    }
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="absolute top-4 right-4 z-[100]">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-stone-800 hover:bg-stone-700 text-white p-2.5 rounded-full shadow-lg border border-stone-700 transition-colors"
+        title="AI Assistant"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-12 right-0 bg-stone-900/95 backdrop-blur text-white rounded-xl shadow-2xl border border-stone-700 w-64 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-stone-100 flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              AI Assistant
+            </h3>
+            <button onClick={() => setIsOpen(false)} className="text-stone-400 hover:text-stone-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </button>
+          </div>
+          
+          <p className="text-[13px] text-stone-400 mb-3 leading-relaxed">
+            Type <span className="font-mono text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">@bot</span> in the chat to ask questions, or use a quick action:
+          </p>
+
+          <div className="space-y-2">
+            <button onClick={() => handleCommand("@bot summarize the meeting so far")} className="w-full text-left px-3 py-2 text-[13px] font-medium text-stone-200 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors border border-stone-700 hover:border-stone-500 flex items-center gap-2">
+              <span className="text-base">📝</span> Summarize
+            </button>
+            <button onClick={() => handleCommand("@bot list action items")} className="w-full text-left px-3 py-2 text-[13px] font-medium text-stone-200 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors border border-stone-700 hover:border-stone-500 flex items-center gap-2">
+              <span className="text-base">📋</span> Action Items
+            </button>
+            <button onClick={() => handleCommand("@bot how is the mood")} className="w-full text-left px-3 py-2 text-[13px] font-medium text-stone-200 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors border border-stone-700 hover:border-stone-500 flex items-center gap-2">
+              <span className="text-base">🎭</span> Sentiment
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Renders the active video conferencing room using LiveKit.
  * Connects to the LiveKit server using the retrieved access token
@@ -173,6 +227,7 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
         style={{ height: '100vh', width: '100vw' }}
       >
         <BotChatListener meetingId={meeting.id} />
+        <AIAssistantPanel />
         <VideoConference />
         <RoomAudioRenderer />
       </LiveKitRoom>

@@ -40,5 +40,9 @@ async def invoke_agent(request: AgentInvokeRequest, _ = Depends(verify_internal_
         description = request.payload.get("description", "") if request.payload else ""
         result = await agenda_generator_agent.run_agenda_generator(description)
         return result
+    elif agent_type == "FOLLOWUP_EMAIL":
+        from app.agents.followup_email import agent as followup_email_agent
+        result = await followup_email_agent.run_followup_email(request.meetingId, request.payload or {})
+        return result
     else:
         raise HTTPException(status_code=400, detail=f"Agent type {agent_type} not implemented yet")

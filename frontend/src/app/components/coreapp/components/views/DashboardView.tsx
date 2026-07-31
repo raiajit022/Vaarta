@@ -34,21 +34,29 @@ export function DashboardView({
     fetchMyMeetings();
   }, [fetchMyMeetings]);
 
+  const parseDate = (d: any) => {
+    if (!d) return 0;
+    if (Array.isArray(d)) {
+      return new Date(d[0], (d[1] || 1) - 1, d[2] || 1, d[3] || 0, d[4] || 0, d[5] || 0).getTime();
+    }
+    return new Date(d).getTime();
+  };
+
   const isPast = (m: any) => {
     if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
     
     if (!m.scheduledStart) {
       // Instant meeting: past if older than 1 hour
       if (m.createdAt) {
-        const createdDate = new Date(m.createdAt).getTime();
-        const now = new Date().getTime();
-        if ((now - createdDate) / (1000 * 60 * 60) > 1) return true;
+        const createdDate = parseDate(m.createdAt);
+        const now = Date.now();
+        if (!isNaN(createdDate) && (now - createdDate) / (1000 * 60 * 60) > 1) return true;
       }
     } else {
       // Scheduled meeting: past if it started more than 1 hour ago
-      const scheduledDate = new Date(m.scheduledStart).getTime();
-      const now = new Date().getTime();
-      if ((now - scheduledDate) / (1000 * 60 * 60) > 1) return true;
+      const scheduledDate = parseDate(m.scheduledStart);
+      const now = Date.now();
+      if (!isNaN(scheduledDate) && (now - scheduledDate) / (1000 * 60 * 60) > 1) return true;
     }
     return false;
   };

@@ -34,6 +34,7 @@ app:
   frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
   notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
   ai-service-url: ${AI_SERVICE_URL:http://ai-service:8000}
+  auth-service-url: ${AUTH_SERVICE_URL:http://auth-service:8080}
   internal-api-key: ${INTERNAL_API_KEY:internal_dev_key_123}
 
 server:

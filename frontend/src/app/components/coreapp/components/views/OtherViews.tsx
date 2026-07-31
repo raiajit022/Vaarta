@@ -22,23 +22,37 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
     fetchMyMeetings();
   }, [fetchMyMeetings]);
 
+  const parseDate = (d: any) => {
+    if (!d) return 0;
+    if (Array.isArray(d)) {
+      return new Date(d[0], (d[1] || 1) - 1, d[2] || 1, d[3] || 0, d[4] || 0, d[5] || 0).getTime();
+    }
+    return new Date(d).getTime();
+  };
+
   const isPast = (m: any) => {
     if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
     
     if (!m.scheduledStart) {
       // Instant meeting: past if older than 1 hour
       if (m.createdAt) {
-        const createdDate = new Date(m.createdAt).getTime();
-        const now = new Date().getTime();
-        if ((now - createdDate) / (1000 * 60 * 60) > 1) return true;
+        const createdDate = parseDate(m.createdAt);
+        const now = Date.now();
+        if (!isNaN(createdDate) && (now - createdDate) / (1000 * 60 * 60) > 1) return true;
       }
     } else {
       // Scheduled meeting: past if it started more than 1 hour ago
-      const scheduledDate = new Date(m.scheduledStart).getTime();
-      const now = new Date().getTime();
-      if ((now - scheduledDate) / (1000 * 60 * 60) > 1) return true;
+      const scheduledDate = parseDate(m.scheduledStart);
+      const now = Date.now();
+      if (!isNaN(scheduledDate) && (now - scheduledDate) / (1000 * 60 * 60) > 1) return true;
     }
     return false;
+  };
+
+  const formatMeetingDate = (d: any) => {
+    const timestamp = parseDate(d);
+    if (!timestamp || isNaN(timestamp)) return 'Invalid Date';
+    return new Date(timestamp).toLocaleString();
   };
 
   const upcomingMeetings = meetings.filter(m => !isPast(m));
@@ -89,12 +103,15 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
                   <div>
                     <h3 className="text-[16px] font-semibold text-stone-900 mb-1">{meeting.title}</h3>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-stone-500">
-                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.scheduledStart ? new Date(meeting.scheduledStart).toLocaleString() : 'Instant Meeting'}</span>
+                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.scheduledStart ? formatMeetingDate(meeting.scheduledStart) : 'Instant Meeting'}</span>
                       <span className="flex items-center gap-1.5 font-mono text-stone-700">{meeting.joinCode}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
+                  <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(meeting.id)}>
+                    <X className="w-4 h-4 mr-1" /> Cancel
+                  </Button>
                   <Button variant="outline" className="flex-1 md:flex-none">Copy Link</Button>
                   <Button className="flex-1 md:flex-none">Join Now</Button>
                 </div>
@@ -115,7 +132,7 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
                   <div>
                     <h3 className="text-[16px] font-semibold text-stone-900 mb-1">{meeting.title}</h3>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-stone-500">
-                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.endedAt ? new Date(meeting.endedAt).toLocaleDateString() : 'Ended'}</span>
+                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.endedAt ? new Date(parseDate(meeting.endedAt)).toLocaleDateString() : 'Ended'}</span>
                     </div>
                   </div>
                 </div>

@@ -43,6 +43,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final InternalApiKeyFilter internalApiKeyFilter;
     private final UserRepository userRepository;
 
     @Value("${app.frontend-url}")
@@ -63,7 +64,8 @@ public class SecurityConfig {
                             "/api/auth/refresh",
                             "/api/auth/verify-email",
                             "/api/auth/forgot-password",
-                            "/api/auth/reset-password"
+                            "/api/auth/reset-password",
+                            "/internal/**"
                     ).permitAll()
                     // Actuator health check — public (for Docker health probes)
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -73,6 +75,7 @@ public class SecurityConfig {
                     .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
