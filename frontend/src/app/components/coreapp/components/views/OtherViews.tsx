@@ -32,7 +32,7 @@ export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => v
 
   const isPast = (m: any) => {
     if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
-    
+
     if (!m.scheduledStart) {
       // Instant meeting: past if older than 1 hour
       if (m.createdAt) {

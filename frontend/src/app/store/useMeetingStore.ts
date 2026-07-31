@@ -59,6 +59,9 @@ interface MeetingStore {
     /** Generates the sentiment for an ended meeting */
     generateSentiment: (meetingId: string) => Promise<Meeting>;
 
+    /** Ends an active meeting */
+    endMeeting: (meetingId: string) => Promise<void>;
+
     /** Retrieves the LiveKit JWT and WebSocket URL required to connect to a meeting room. */
     fetchLiveKitToken: (meetingId: string) => Promise<{ token: string, livekitUrl: string }>;
 
@@ -136,6 +139,19 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
             }));
         } catch (error: any) {
             set({ error: error.response?.data?.message || 'Failed to delete meeting', isLoading: false });
+            throw error;
+        }
+    },
+    endMeeting: async (meetingId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            await meetingClient.post(`/api/meetings/${meetingId}/end`);
+            set((state) => ({
+                meetings: state.meetings.map(m => m.id === meetingId ? { ...m, status: 'ENDED' } : m),
+                isLoading: false
+            }));
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || 'Failed to end meeting', isLoading: false });
             throw error;
         }
     },
