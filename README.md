@@ -118,7 +118,7 @@ Open `http://localhost:5173` in your browser.
 
 ## 🌍 Cloud Deployment
 
-Vaarta is optimized for **Azure Container Apps (ACA)** for the backend and **Vercel** for the frontend, ensuring minimal cost and maximal scale. 
+Vaarta is optimized for **Azure Container Apps** for the backend and **Vercel** for the frontend, ensuring minimal cost and maximal scale. 
 
 For a complete, step-by-step production deployment guide, refer to the local `AzureDeployment.md` file located in the root of the repository.
 
