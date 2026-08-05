@@ -70,3 +70,7 @@ phase-*.md
 
 query_db.py
 test-db/
+
+deploy_fix.sh
+deploy.pid
+deploy.log
