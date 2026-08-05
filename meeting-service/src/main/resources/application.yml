@@ -41,3 +41,10 @@ server:
   port: 8080
   error:
     include-message: always
+
+# ── LiveKit ──────────────────────────────────────────────────────────────────
+livekit:
+  api:
+    key: ${LIVEKIT_API_KEY:devkey}
+    secret: ${LIVEKIT_API_SECRET:devsecret}
+  url: ${LIVEKIT_URL:ws://localhost:7880}
