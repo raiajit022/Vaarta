@@ -37,8 +37,8 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
       case 'contacts': return '/contacts';
       case 'settings': return '/settings';
       case 'join': return '/join';
-      case 'live': return meeting?.joinCode ? `/meeting/${meeting.joinCode}` : '/';
-      case 'pre-call': return meeting?.joinCode ? `/meeting/${meeting.joinCode}/lobby` : '/';
+      case 'live': return meeting?.joinCode ? `/join/${meeting.joinCode}` : '/';
+      case 'pre-call': return meeting?.joinCode ? `/join/${meeting.joinCode}` : '/';
       case 'admin-users': return '/admin/users';
       case 'admin-meetings': return '/admin/meetings';
       default: return '/';

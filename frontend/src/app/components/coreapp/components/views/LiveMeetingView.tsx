@@ -41,26 +41,26 @@ function AIAssistantPanel() {
 
   return (
     <div className="absolute top-4 right-4 z-[100]">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="bg-stone-800 hover:bg-stone-700 text-white p-2.5 rounded-full shadow-lg border border-stone-700 transition-colors"
         title="AI Assistant"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
       </button>
 
       {isOpen && (
         <div className="absolute top-12 right-0 bg-stone-900/95 backdrop-blur text-white rounded-xl shadow-2xl border border-stone-700 w-64 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-stone-100 flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
               AI Assistant
             </h3>
             <button onClick={() => setIsOpen(false)} className="text-stone-400 hover:text-stone-200">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </button>
           </div>
-          
+
           <p className="text-[13px] text-stone-400 mb-3 leading-relaxed">
             Type <span className="font-mono text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">@bot</span> in the chat to ask questions, or use a quick action:
           </p>
@@ -181,7 +181,7 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
               </div>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setIsInviting(true)}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-2 px-4 flex items-center justify-center gap-2 font-medium text-sm transition-colors mb-4"
             >
@@ -230,7 +230,7 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
         <AIAssistantPanel />
         <VideoConference />
         <RoomAudioRenderer />
-        
+
         {currentUser?.id === meeting?.hostId && (
           <div className="absolute bottom-6 left-6 z-[100]">
             <button
@@ -247,7 +247,7 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
               }}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg border border-red-500 transition-colors flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1-1.56 1.293 8.744 8.744 0 0 0-8.919-4.816c-2.43.34-4.715 1.572-6.42 3.277l-.66-.66a10.744 10.744 0 0 1 6.354-5.669z"/><path d="M14 14l-4 4-4-4"/><path d="M10 18V9"/><path d="M3 3l18 18"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1-1.56 1.293 8.744 8.744 0 0 0-8.919-4.816c-2.43.34-4.715 1.572-6.42 3.277l-.66-.66a10.744 10.744 0 0 1 6.354-5.669z" /><path d="M14 14l-4 4-4-4" /><path d="M10 18V9" /><path d="M3 3l18 18" /></svg>
               End Meeting for All
             </button>
           </div>
