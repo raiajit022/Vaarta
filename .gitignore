@@ -67,3 +67,6 @@ phase-*.md
 *.md
 !README.md
 
+
+query_db.py
+test-db/
