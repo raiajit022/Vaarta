@@ -1,0 +1,8 @@
+target
+.idea
+*.jar
+*.class
+.git
+__pycache__
+.venv
+*.pyc
