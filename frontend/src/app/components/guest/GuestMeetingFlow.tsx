@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Card } from "../ui/Card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Card } from "../ui/card";
 import { Video } from "lucide-react";
 import { meetingClient } from "../../apiClient";
 import { LiveMeetingView } from "../coreapp/components/views/LiveMeetingView";
