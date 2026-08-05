@@ -1,10 +1,18 @@
 spring:
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-sources[0]:
+            endpoint: https://vaarta-vault-prod.vault.azure.net/
+            credential:
+              managed-identity-enabled: true
   application:
     name: notification-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/notifications}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    username: ${DB_USER:dbadmin}
+    password: ${DB-PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -26,9 +34,9 @@ server:
   port: 8080
 
 resend:
-  api-key: ${RESEND_API_KEY}
+  api-key: ${RESEND-API-KEY}
   from-address: ${RESEND_FROM_ADDRESS:notifications@vaarta.site}
 
 app:
-  internal-api-key: ${INTERNAL_API_KEY}
+  internal-api-key: ${INTERNAL-API-KEY}
   frontend-url: ${FRONTEND_URL:https://www.vaarta.site}

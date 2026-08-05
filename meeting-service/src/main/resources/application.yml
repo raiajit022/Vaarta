@@ -1,11 +1,19 @@
 spring:
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-sources[0]:
+            endpoint: https://vaarta-vault-prod.vault.azure.net/
+            credential:
+              managed-identity-enabled: true
   application:
     name: meeting-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/meetings}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    username: ${DB_USER:dbadmin}
+    password: ${DB-PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -27,15 +35,15 @@ spring:
 
 # ── JWT ─────────────────────────────────────────────────────────────────────
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT-SECRET}
 
 # ── Application ──────────────────────────────────────────────────────────────
 app:
   frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
-  notification-service-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8080}
-  ai-service-url: ${AI_SERVICE_URL:http://ai-service:8000}
-  auth-service-url: ${AUTH_SERVICE_URL:http://auth-service:8080}
-  internal-api-key: ${INTERNAL_API_KEY:internal_dev_key_123}
+  notification-service-url: ${NOTIFICATION_SERVICE_URL:https://notification-service.internal.vaarta-env.azurecontainerapps.io}
+  ai-service-url: ${AI_SERVICE_URL:https://ai-service.internal.vaarta-env.azurecontainerapps.io}
+  auth-service-url: ${AUTH_SERVICE_URL:https://auth-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io}
+  internal-api-key: ${INTERNAL-API-KEY}
 
 server:
   port: 8080
@@ -45,6 +53,6 @@ server:
 # ── LiveKit ──────────────────────────────────────────────────────────────────
 livekit:
   api:
-    key: ${LIVEKIT_API_KEY:devkey}
-    secret: ${LIVEKIT_API_SECRET:devsecret}
-  url: ${LIVEKIT_URL:ws://localhost:7880}
+    key: ${LIVEKIT-API-KEY}
+    secret: ${LIVEKIT-API-SECRET}
+  url: ${LIVEKIT_URL:wss://vaarta-gtmvkch7.livekit.cloud}

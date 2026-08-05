@@ -15,6 +15,7 @@ import { CoreApp } from "./components/coreapp/App";
 
 import { useAuthStore } from "./store/useAuthStore";
 import { authClient } from "./apiClient";
+import { Toaster } from "sonner";
 
 type AuthMode = 'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'reset' | 'verify-email';
 
@@ -186,32 +187,38 @@ export default function App() {
     }
   }
 
-  // If fully authenticated, render the main app
   if (isAuthenticated) {
     return (
-      <CoreApp
-        onSignOut={() => {
-          logout();
-          authClient.post('/api/auth/logout').catch(() => { }); // fire and forget (optional if backend adds logout)
-          switchMode('login');
-        }}
-      />
+      <>
+        <Toaster position="top-center" richColors />
+        <CoreApp
+          onSignOut={() => {
+            logout();
+            authClient.post('/api/auth/logout').catch(() => { }); // fire and forget (optional if backend adds logout)
+            switchMode('login');
+          }}
+        />
+      </>
     );
   }
 
   if (authMode === 'landing') {
     return (
-      <LandingPage
-        isDark={isDark}
-        setIsDark={setIsDark}
-        onSignIn={() => switchMode('login')}
-        onGetStarted={() => switchMode('register')}
-      />
+      <>
+        <Toaster position="top-center" richColors />
+        <LandingPage
+          isDark={isDark}
+          setIsDark={setIsDark}
+          onSignIn={() => switchMode('login')}
+          onGetStarted={() => switchMode('register')}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 font-sans bg-[#faf9f7] dark:bg-[#14120F] text-stone-900 dark:text-stone-100 selection:bg-emerald-500/30 transition-colors duration-200">
+      <Toaster position="top-center" richColors />
       <BrandPanel />
 
       {/* Auth side */}

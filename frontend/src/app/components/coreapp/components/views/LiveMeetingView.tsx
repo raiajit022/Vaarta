@@ -3,6 +3,7 @@ import { LiveKitRoom, VideoConference, RoomAudioRenderer, useChat } from '@livek
 import '@livekit/components-styles';
 import { useMeetingStore } from "../../../../store/useMeetingStore";
 import { useAuthStore } from "../../../../store/useAuthStore";
+import { MeetingReactions } from "./MeetingReactions";
 
 /**
  * A hidden component that listens to the LiveKit data channel for chat messages.
@@ -167,8 +168,10 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
                       setIsInviting(false);
                       setEmailsInput("");
                       setShowInvitePopup(false);
+                      alert("Invites have been successfully sent to the participants!");
                     } catch (e) {
                       console.error(e);
+                      alert("Failed to send invites.");
                     } finally {
                       setIsSending(false);
                     }
@@ -230,6 +233,7 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
         <AIAssistantPanel />
         <VideoConference />
         <RoomAudioRenderer />
+        <MeetingReactions isHost={currentUser?.id === meeting?.hostId} />
 
         {currentUser?.id === meeting?.hostId && (
           <div className="absolute bottom-6 left-6 z-[100]">
