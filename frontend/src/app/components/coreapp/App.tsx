@@ -211,12 +211,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
         // Device check step before entering the actual meeting
         return <PreCallDeviceCheckView 
           onJoinNow={() => {
-            const userId = useAuthStore.getState().user?.id;
-            if (activeMeeting?.hostId === userId) {
-              setCurrentView("live");
-            } else {
-              setCurrentView("waiting-guest");
-            }
+            setCurrentView("live");
           }} 
           onBack={() => setCurrentView("dashboard")}
         />;
