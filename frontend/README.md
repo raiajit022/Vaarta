@@ -60,3 +60,28 @@ Here is how data flows through the Frontend:
 3. **API Client**: The store uses the configured Axios client (`src/app/apiClient.ts`). The API client's interceptor automatically injects the JWT token (from `localStorage`) into the `Authorization` header.
 4. **Network Request**: The API client sends an HTTP request to the corresponding microservice backend (e.g., `meeting-service`).
 5. **UI Update**: The response is returned to the store, the Zustand state is updated, and React automatically re-renders the UI to reflect the changes.
+
+## End-to-End Architecture & Code Explanation
+
+### 1. The Core UI (`app/components/`)
+This Next.js application organizes its visual layers functionally.
+- **`landing/`**: The public-facing static pages (marketing, features).
+- **`auth/`**: Registration, Login, and OTP Verification pages.
+- **`coreapp/`**: The logged-in dashboard and meeting interface.
+  - `LiveMeetingView.tsx` heavily relies on the `@livekit/components-react` library. It renders the `LiveKitRoom`, injects the JWT token, and manages the camera, microphone, screen sharing, meeting reactions (raise hand, emojis), and dynamic layouts for grids of participants.
+
+### 2. State Management (`app/store/`)
+Vaarta uses **Zustand** for lightweight, global state management, avoiding the boilerplate of Redux.
+- **`useAuthStore.ts`**: Handles authentication workflows. When a user logs in, it calls the `auth-service`, stores the returned JWT in browser storage, and exposes `user` state globally to protect routes.
+- **`useMeetingStore.ts`**: Manages all meeting lifecycle actions.
+  - Generates meeting join codes and stores meeting configurations.
+  - Facilitates the "Invite Participants" functionality by passing comma-separated emails to the `meeting-service`, rigorously catching network errors to ensure UI consistency.
+
+### 3. Real-Time Communication
+- The frontend connects directly to LiveKit Cloud via WebSockets (`wss://`) using tokens securely minted by our `meeting-service`.
+- This WebRTC abstraction handles NAT traversal, media encoding, and streaming.
+
+### 4. Build & Routing
+- Uses Next.js App Router or Pages Router (depending on Next.js version configuration).
+- Tailwind CSS config (`tailwind.config.ts`) provides utility-first styling for the entire component tree.
+- Deployed on Vercel, allowing edge-optimized static delivery and seamless continuous deployment linked to the Git repository.

@@ -58,3 +58,28 @@ Here is how data flows through the Notification Service:
    - It captures the success or failure of this external call.
    - It creates a `NotificationLog` entity recording the attempt and uses `NotificationLogRepository.java` to persist this log to PostgreSQL.
 6. **Response**: A 202 Accepted HTTP response is returned to the calling microservice.
+
+## End-to-End Architecture & Code Explanation
+
+### 1. Internal API Ingress (`InternalApiKeyFilter.java`)
+Because the `notification-service` is strictly an internal utility service (not exposed to the public internet in the Azure Container Apps environment), it enforces security using an API key filter. 
+- It intercepts all incoming requests.
+- It validates the `X-Internal-Key` header against the expected key retrieved from Azure Key Vault. 
+- If missing or invalid, it immediately rejects the request with a 401 Unauthorized.
+
+### 2. The Controller (`NotificationController.java`)
+This defines the web endpoints that other services can hit:
+- `/api/notifications/meeting-invite`: Called by `meeting-service` when a user invites participants.
+- `/api/notifications/meeting-reminder`: Called by a scheduled cron job (or similar mechanism) before a meeting starts.
+- `/api/notifications/meeting-summary`: Called by `meeting-service` when the AI finishes transcribing and summarizing a meeting.
+- It maps the JSON payloads into strongly-typed Java DTOs (e.g., `SendInviteRequest`).
+
+### 3. The Email Dispatcher (`NotificationService.java`)
+This is where the actual integration with the external email provider (Resend) happens.
+- It uses string templating to build HTML email bodies.
+- It leverages Spring's `RestClient` to dispatch a POST request to `https://api.resend.com/emails`, passing the `RESEND-API-KEY` (from Azure Key Vault) in the Authorization header.
+
+### 4. Audit Logging (`NotificationLog.java`)
+- Every time an email is dispatched, a `NotificationLog` entity is instantiated.
+- It records the recipient, the type of email (INVITE, REMINDER), the associated `meetingId`, and whether the Resend API call was `SENT` or `FAILED`.
+- The log is saved to PostgreSQL via the `NotificationLogRepository` for troubleshooting and analytics.

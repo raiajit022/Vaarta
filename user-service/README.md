@@ -48,3 +48,26 @@ Here is how data flows through the User Service:
 3. **Service Layer**: The controller passes the request to `UserService.java` to perform the necessary logic (e.g., fetching a profile or creating a new default one).
 4. **Database Interaction**: `UserService` queries `UserProfileRepository.java` to read or write the `UserProfile` in the PostgreSQL database.
 5. **Response**: A formatted `UserProfileResponse` DTO is returned back up the chain and sent to the client as a JSON response.
+
+## End-to-End Architecture & Code Explanation
+
+### 1. The Controller (`UserProfileController.java`)
+This acts as the public API surface for user-related actions.
+- `@GetMapping("/me")` allows a logged-in user to fetch their own profile details. It extracts the `userId` directly from the authenticated JWT context so that a user cannot query another user's private data.
+- `@PostMapping("/internal/provision")` is a protected internal route that is called exclusively by the `auth-service` immediately after a new user signs up. This creates the blank profile record in the database.
+
+### 2. Business Logic (`UserProfileService.java`)
+The core service layer.
+- **Provisioning**: When a user registers, this service takes the user ID, first name, and last name, and persists a `UserProfile` entity to the PostgreSQL database.
+- **Updates**: It allows users to update their avatar URL, bio, and preferences by patching the entity fields.
+
+### 3. Data Access (`UserProfileRepository.java`)
+- A simple Spring Data JPA interface extending `JpaRepository`.
+- It executes the SQL commands to read, write, and update the `user_profile` table.
+
+### 4. Internal Security (`InternalApiKeyFilter.java`)
+- Because the `user-service` has specific endpoints that should *only* be called by other microservices (like provisioning a user), it uses an API key filter.
+- Any request hitting `/api/users/internal/*` is intercepted by this filter. It checks for the `X-Internal-Key` header and strictly matches it against the value stored in Azure Key Vault.
+
+### 5. Flyway Migrations (`V1__init.sql`)
+- The `user_service` database schema is initialized by Flyway upon application boot. It creates the `user_profile` table ensuring consistency across deployments.

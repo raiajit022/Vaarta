@@ -55,3 +55,25 @@ Here is how data flows through the Meeting Service (e.g. when creating a meeting
 4. **Database Interaction**: The `MeetingService` saves these entities to the PostgreSQL database via `MeetingRepository.java` and `MeetingParticipantRepository.java`.
 5. **External Notification Call**: If `participantEmails` were provided in the request, `MeetingService` spins up an asynchronous thread using a `RestClient` to send an internal HTTP request to `notification-service:8080/api/notifications/meeting-invite`. It uses an `X-Internal-Key` header for authorization.
 6. **Response**: A formatted `MeetingResponse` DTO is returned to the controller and sent back to the frontend.
+
+## End-to-End Architecture & Code Explanation
+
+### 1. The Controller (`MeetingController.java`)
+This is the entry point for all HTTP requests coming from the frontend (via the ingress controller). 
+- Methods like `@PostMapping` or `@GetMapping` handle API routing (e.g., creating a meeting, joining a meeting, inviting participants).
+- It extracts the `userId` from the incoming JWT token (handled by Spring Security) to ensure actions are authorized.
+- It then passes the data to the `MeetingService`.
+
+### 2. The Business Logic (`MeetingService.java`)
+This is where the core logic of the meeting application lives.
+- **Meeting Creation**: It generates a unique join code and stores a new `Meeting` entity in the PostgreSQL database using `MeetingRepository`.
+- **LiveKit Integration**: To facilitate live video/audio, it uses the LiveKit Java SDK to create a secure `AccessToken`. This token is passed to the frontend so the browser can connect directly to the WebRTC servers.
+- **Microservice Communication**: It uses Spring's `RestClient` to communicate with the `notification-service` (for sending email invites) and the `ai-service` (for generating meeting recaps). These calls are authenticated using a shared `X-Internal-Key`.
+
+### 3. Database & Entity Modeling
+- Entities like `Meeting` and `MeetingParticipant` are JPA models. They define the database schema (e.g., foreign keys, timestamps).
+- `Flyway` automatically manages the database migrations at startup, ensuring the SQL schema matches the Java entities.
+
+### 4. Configuration & Security (`SecurityConfig.java`, `application.yml`)
+- **JWT Validation**: The `SecurityConfig` enforces that all API requests contain a valid JWT token signed by the `auth-service`.
+- **Azure Key Vault**: The `application.yml` is configured to use `spring-cloud-azure-starter-keyvault-secrets`. When running in Azure Container Apps, it uses the attached Managed Identity to fetch database passwords and API keys securely into memory, bypassing standard environment variables.

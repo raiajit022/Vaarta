@@ -17,6 +17,7 @@ client_id = os.getenv("AZURE_CLIENT_ID")
 if client_id:
     try:
         from azure.identity import ManagedIdentityCredential
+        # pyrefly: ignore [missing-import]
         from azure.keyvault.secrets import SecretClient
         
         vault_url = "https://vaarta-vault-prod.vault.azure.net/"
