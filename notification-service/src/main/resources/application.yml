@@ -36,7 +36,7 @@ server:
 
 resend:
   api-key: ${RESEND-API-KEY}
-  from-address: ${RESEND_FROM_ADDRESS:notifications@vaarta.site}
+  from-address: ${RESEND_FROM_ADDRESS:notification@vaarta.site}
 
 app:
   internal-api-key: ${INTERNAL-API-KEY}

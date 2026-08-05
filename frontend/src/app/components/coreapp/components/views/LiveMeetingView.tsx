@@ -91,10 +91,11 @@ function AIAssistantPanel() {
  * @param props.meeting The active meeting object data.
  * @param props.onLeave Callback invoked when the user disconnects or leaves the room.
  */
-export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: () => void }) {
+export function LiveMeetingView({ meeting, onLeave, initialToken, initialLivekitUrl }: { meeting: any, onLeave: () => void, initialToken?: string, initialLivekitUrl?: string }) {
+  const [activeTab, setActiveTab] = useState<"chat" | "people" | "agent">("chat");
   const { fetchLiveKitToken, inviteParticipants, endMeeting } = useMeetingStore();
-  const [token, setToken] = useState<string | null>(null);
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(initialToken || null);
+  const [serverUrl, setServerUrl] = useState<string | null>(initialLivekitUrl || null);
   const currentUser = useAuthStore(state => state.user);
   const [showInvitePopup, setShowInvitePopup] = useState(() => currentUser?.id === meeting?.hostId);
   const [isInviting, setIsInviting] = useState(false);
@@ -102,12 +103,12 @@ export function LiveMeetingView({ meeting, onLeave }: { meeting: any, onLeave: (
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    if (!meeting?.id) return;
+    if (!meeting?.id || token) return;
     fetchLiveKitToken(meeting.id).then((res) => {
       setToken(res.token);
       setServerUrl(res.livekitUrl);
     }).catch(console.error);
-  }, [meeting, fetchLiveKitToken]);
+  }, [meeting, fetchLiveKitToken, token]);
 
   if (!token || !serverUrl) {
     return <div className="flex items-center justify-center h-screen bg-[#14120F] text-white">Connecting...</div>;

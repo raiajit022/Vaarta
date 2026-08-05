@@ -228,6 +228,27 @@ public class MeetingService {
     }
 
     /**
+     * Validates a join code and returns meeting details for a guest user.
+     * We do not save a participant record for guests yet, or they will be
+     * transiently connected to LiveKit.
+     *
+     * @param joinCode the 9-character code for the meeting.
+     * @return the meeting details.
+     * @throws RuntimeException if the meeting does not exist or is inactive.
+     */
+    @Transactional(readOnly = true)
+    public MeetingResponse guestJoinMeeting(String joinCode) {
+        Meeting meeting = meetingRepository.findByJoinCode(joinCode)
+                .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+        if (meeting.getStatus() == MeetingStatus.CANCELLED || meeting.getStatus() == MeetingStatus.ENDED) {
+            throw new RuntimeException("Meeting is no longer active");
+        }
+
+        return mapToResponse(meeting);
+    }
+
+    /**
      * Ends a meeting. Only the host is permitted to end their own meeting.
      *
      * @param id     the UUID of the meeting.

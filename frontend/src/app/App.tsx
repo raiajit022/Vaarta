@@ -16,8 +16,9 @@ import { CoreApp } from "./components/coreapp/App";
 import { useAuthStore } from "./store/useAuthStore";
 import { authClient } from "./apiClient";
 import { Toaster } from "sonner";
+import { GuestMeetingFlow } from "./components/guest/GuestMeetingFlow";
 
-type AuthMode = 'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'reset' | 'verify-email';
+type AuthMode = 'landing' | 'login' | 'register' | 'forgot' | 'check-email' | 'reset' | 'verify-email' | 'guest-join';
 
 export default function App() {
   const { isDark, setIsDark } = useTheme();
@@ -39,6 +40,7 @@ export default function App() {
 
   // URL Parameters for verify and reset flows
   const [urlToken, setUrlToken] = useState<string | null>(null);
+  const [joinCode, setJoinCode] = useState<string | null>(null);
 
   // Simple routing based on URL path and query string (since we're not using React Router yet)
   useEffect(() => {
@@ -61,8 +63,9 @@ export default function App() {
       setAuthMode('reset');
       window.history.replaceState({}, document.title, "/");
     } else if (!isAuthenticated && (joinMatch || meetingMatch)) {
-      setAuthMode('login');
-      // Do not replace state; keep the URL so CoreApp picks it up after login
+      const code = (joinMatch ? joinMatch[1] : meetingMatch ? meetingMatch[1] : null);
+      setJoinCode(code);
+      setAuthMode('guest-join');
     } else if (isAuthenticated) {
       // If already authenticated and not on a special link, jump straight in
       // but only if we are currently trying to show landing or login
@@ -197,6 +200,21 @@ export default function App() {
             authClient.post('/api/auth/logout').catch(() => { }); // fire and forget (optional if backend adds logout)
             switchMode('login');
           }}
+        />
+      </>
+    );
+  }
+
+  if (authMode === 'guest-join' && joinCode) {
+    return (
+      <>
+        <Toaster position="top-center" richColors />
+        <GuestMeetingFlow 
+          joinCode={joinCode} 
+          onBack={() => {
+            setAuthMode('landing');
+            window.history.replaceState({}, '', '/');
+          }} 
         />
       </>
     );

@@ -13,16 +13,24 @@ import java.util.UUID;
 /**
  * REST controller for user-facing meeting operations.
  *
- * <p>Handles creating, joining, and listing meetings for the currently authenticated user.
+ * <p>
+ * Handles creating, joining, and listing meetings for the currently
+ * authenticated user.
  */
 @RestController
 @RequestMapping("/api/meetings")
 public class MeetingController {
 
     private final MeetingService meetingService;
+    private final com.vaarta.meeting.service.LiveKitTokenService liveKitTokenService;
 
-    public MeetingController(MeetingService meetingService) {
+    @org.springframework.beans.factory.annotation.Value("${livekit.url:ws://localhost:7880}")
+    private String livekitUrl;
+
+    public MeetingController(MeetingService meetingService,
+            com.vaarta.meeting.service.LiveKitTokenService liveKitTokenService) {
         this.meetingService = meetingService;
+        this.liveKitTokenService = liveKitTokenService;
     }
 
     private UUID getCurrentUserId() {
@@ -66,7 +74,8 @@ public class MeetingController {
 
     /**
      * Joins a meeting using a short join code.
-     * Adds the current user to the meeting's participant list if not already present.
+     * Adds the current user to the meeting's participant list if not already
+     * present.
      *
      * @param joinCode the unique 9-character code for the meeting.
      * @return the meeting details.
@@ -77,10 +86,39 @@ public class MeetingController {
     }
 
     /**
+     * Joins a meeting as a guest without requiring authentication.
+     * Returns the meeting details along with a LiveKit token to connect directly.
+     *
+     * @param joinCode the unique 9-character code for the meeting.
+     * @param payload  containing the guestName.
+     * @return map containing meeting details, token, and livekitUrl.
+     */
+    @PostMapping("/guest-join/{joinCode}")
+    public ResponseEntity<java.util.Map<String, Object>> guestJoinMeeting(
+            @PathVariable String joinCode,
+            @RequestBody java.util.Map<String, String> payload) {
+
+        String guestName = payload.getOrDefault("guestName", "Guest");
+
+        // Use meetingService to validate and fetch the meeting
+        MeetingResponse meeting = meetingService.guestJoinMeeting(joinCode);
+
+        // Generate a random ID for the guest participant
+        UUID guestId = UUID.randomUUID();
+        String token = liveKitTokenService.generateToken(meeting.getId(), guestId, guestName, false);
+
+        return ResponseEntity.ok(java.util.Map.of(
+                "meeting", meeting,
+                "token", token,
+                "livekitUrl", livekitUrl));
+    }
+
+    /**
      * Sends invitations to a list of emails for an existing meeting.
      */
     @PostMapping("/{id}/invite")
-    public ResponseEntity<Void> inviteParticipants(@PathVariable UUID id, @RequestBody java.util.Map<String, java.util.List<String>> payload) {
+    public ResponseEntity<Void> inviteParticipants(@PathVariable UUID id,
+            @RequestBody java.util.Map<String, java.util.List<String>> payload) {
         java.util.List<String> emails = payload.get("emails");
         if (emails != null && !emails.isEmpty()) {
             meetingService.inviteParticipants(id, emails);
@@ -136,7 +174,8 @@ public class MeetingController {
      * This endpoint is called before a meeting is created.
      */
     @PostMapping("/suggest-agenda")
-    public ResponseEntity<java.util.Map<String, Object>> suggestAgenda(@RequestBody java.util.Map<String, String> payload) {
+    public ResponseEntity<java.util.Map<String, Object>> suggestAgenda(
+            @RequestBody java.util.Map<String, String> payload) {
         String description = payload.get("description");
         if (description == null || description.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
