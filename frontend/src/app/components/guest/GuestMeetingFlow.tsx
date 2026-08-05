@@ -12,7 +12,7 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
   const [guestName, setGuestName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [meeting, setMeeting] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [livekitUrl, setLivekitUrl] = useState<string | null>(null);
@@ -22,18 +22,18 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
       setError("Please enter your name");
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
     try {
       const res = await meetingClient.post(`/api/meetings/guest-join/${joinCode}`, {
         guestName: guestName.trim()
       });
-      
+
       setMeeting(res.data.meeting);
       setToken(res.data.token);
       setLivekitUrl(res.data.livekitUrl);
-      
+
       setStep("pre-call");
     } catch (e: any) {
       console.error("Failed to join as guest", e);
@@ -58,28 +58,28 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
             </div>
             Vaarta
           </div>
-          
+
           <h2 className="text-[24px] font-semibold text-stone-900 tracking-tight text-center mb-2">Join as Guest</h2>
           <p className="text-[14px] text-stone-500 text-center mb-8">Enter your name to join the meeting</p>
 
           <div className="space-y-5 mb-8">
             <div>
-              <Input 
-                placeholder="Your name" 
+              <Input
+                placeholder="Your name"
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleJoin();
                 }}
-                className="h-12" 
+                className="h-12"
                 autoFocus
               />
             </div>
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           </div>
 
-          <Button 
-            className="w-full h-12 text-[15px]" 
+          <Button
+            className="w-full h-12 text-[15px]"
             onClick={handleJoin}
             disabled={isLoading || !guestName.trim()}
           >
@@ -92,8 +92,8 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
 
   if (step === "pre-call") {
     return (
-      <PreCallDeviceCheckView 
-        onJoinNow={() => setStep("live")} 
+      <PreCallDeviceCheckView
+        onJoinNow={() => setStep("live")}
         onBack={() => setStep("name")}
       />
     );
@@ -101,8 +101,8 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
 
   if (step === "live") {
     return (
-      <LiveMeetingView 
-        meeting={meeting} 
+      <LiveMeetingView
+        meeting={meeting}
         onLeave={onBack}
         initialToken={token || undefined}
         initialLivekitUrl={livekitUrl || undefined}
