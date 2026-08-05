@@ -7,6 +7,7 @@ spring:
             endpoint: https://vaarta-vault-prod.vault.azure.net/
             credential:
               managed-identity-enabled: true
+              client-id: ${AZURE_CLIENT_ID:7a145cce-7fcd-49b1-8813-48647598fe22}
   application:
     name: auth-service
 
