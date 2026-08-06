@@ -38,9 +38,9 @@ public class AuthController {
         @PostMapping("/register")
         public ResponseEntity<Map<String, String>> register(
                         @Valid @RequestBody RegisterRequest request) {
-                log.info("POST /api/auth/register - email={}", request.getEmail());
+                log.info("POST /api/auth/register - email={}", request.email());
                 authService.register(request);
-                log.info("Registration successful for email={}", request.getEmail());
+                log.info("Registration successful for email={}", request.email());
                 return ResponseEntity
                                 .status(HttpStatus.CREATED)
                                 .body(Map.of("message",
@@ -69,9 +69,9 @@ public class AuthController {
         @PostMapping("/login")
         public ResponseEntity<LoginResponse> login(
                         @Valid @RequestBody LoginRequest request) {
-                log.info("POST /api/auth/login - email={}", request.getEmail());
+                log.info("POST /api/auth/login - email={}", request.email());
                 LoginResponse response = authService.login(request);
-                log.info("Login successful for email={}", request.getEmail());
+                log.info("Login successful for email={}", request.email());
                 return ResponseEntity.ok(response);
         }
 
@@ -97,9 +97,9 @@ public class AuthController {
         @PostMapping("/forgot-password")
         public ResponseEntity<Map<String, String>> forgotPassword(
                         @Valid @RequestBody ForgotPasswordRequest request) {
-                log.info("POST /api/auth/forgot-password - email={}", request.getEmail());
+                log.info("POST /api/auth/forgot-password - email={}", request.email());
                 authService.forgotPassword(request);
-                log.info("Forgot password process completed for email={}", request.getEmail());
+                log.info("Forgot password process completed for email={}", request.email());
                 return ResponseEntity.ok(Map.of(
                                 "message", "If that email is registered, you'll receive a reset link shortly."));
         }
