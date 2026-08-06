@@ -100,7 +100,7 @@ authClient.interceptors.response.use(
         // If refresh fails, log out the user
         processQueue(refreshError, null);
         useAuthStore.getState().logout();
-        return Promise.reject(refreshError);
+        return Promise.reject(error); // Reject with original error
       } finally {
         isRefreshing = false;
       }
@@ -175,7 +175,7 @@ userClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().logout();
-        return Promise.reject(refreshError);
+        return Promise.reject(error); // Reject with original error
       } finally {
         isRefreshing = false;
       }
@@ -248,7 +248,7 @@ meetingClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().logout();
-        return Promise.reject(refreshError);
+        return Promise.reject(error); // Reject with original error
       } finally {
         isRefreshing = false;
       }

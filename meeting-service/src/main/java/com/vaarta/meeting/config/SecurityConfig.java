@@ -38,6 +38,7 @@ public class SecurityConfig {
                     .requestMatchers("/internal/**").permitAll() // Protected by internal key filter
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                     .requestMatchers("/api/meetings/guest-join/**").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             )

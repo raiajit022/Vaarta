@@ -71,7 +71,7 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleJoin();
                 }}
-                className="h-12"
+                className="h-12 bg-white text-stone-900 border-stone-200 placeholder:text-stone-400 focus-visible:ring-emerald-500"
                 autoFocus
               />
             </div>
@@ -79,7 +79,7 @@ export function GuestMeetingFlow({ joinCode, onBack }: { joinCode: string, onBac
           </div>
 
           <Button
-            className="w-full h-12 text-[15px]"
+            className="w-full h-12 text-[15px] bg-emerald-600 hover:bg-emerald-700 text-white"
             onClick={handleJoin}
             disabled={isLoading || !guestName.trim()}
           >
