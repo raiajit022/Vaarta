@@ -7,7 +7,10 @@ import java.util.UUID;
 /**
  * Data Transfer Object for representing meeting details.
  */
-public class MeetingResponse {
+public class MeetingResponse implements java.io.Serializable {
+    @java.io.Serial
+    private static final long serialVersionUID = 1L;
+
     private UUID id;
     private String title;
     private UUID hostId;

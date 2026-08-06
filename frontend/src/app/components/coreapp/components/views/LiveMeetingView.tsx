@@ -101,6 +101,7 @@ export function LiveMeetingView({ meeting, onLeave, initialToken, initialLivekit
   const [isInviting, setIsInviting] = useState(false);
   const [emailsInput, setEmailsInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isEndingMeeting, setIsEndingMeeting] = useState(false);
 
   useEffect(() => {
     if (!meeting?.id || token) return;
@@ -236,19 +237,22 @@ export function LiveMeetingView({ meeting, onLeave, initialToken, initialLivekit
             <button
               onClick={async () => {
                 if (window.confirm("Are you sure you want to end this meeting for everyone?")) {
+                  setIsEndingMeeting(true);
                   try {
                     await endMeeting(meeting.id);
                     onLeave();
                   } catch (e) {
                     console.error("Failed to end meeting", e);
                     alert("Failed to end meeting.");
+                    setIsEndingMeeting(false);
                   }
                 }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg border border-red-500 transition-colors flex items-center gap-2"
+              disabled={isEndingMeeting}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg border border-red-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1-1.56 1.293 8.744 8.744 0 0 0-8.919-4.816c-2.43.34-4.715 1.572-6.42 3.277l-.66-.66a10.744 10.744 0 0 1 6.354-5.669z" /><path d="M14 14l-4 4-4-4" /><path d="M10 18V9" /><path d="M3 3l18 18" /></svg>
-              End Meeting for All
+              {isEndingMeeting ? "Ending..." : "End Meeting for All"}
             </button>
           </div>
         )}
