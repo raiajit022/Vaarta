@@ -72,14 +72,14 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.1.12",
+    "@tailwindcss/vite": "4.3.3",
     "@types/node": "^26.1.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react": "4.7.0",
+    "@vitejs/plugin-react": "6.0.5",
     "tailwindcss": "4.1.12",
     "typescript": "^5.7.3",
-    "vite": "6.3.5"
+    "vite": "8.2.0"
   },
   "allowScripts": {
     "@tailwindcss/oxide@4.1.12": true,
