@@ -10,7 +10,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -75,7 +75,7 @@ services:
     env_file: .env
 
   frontend:
-    build: 
+    build:
       context: ./frontend
       args:
         - VITE_AUTH_API_URL=${VITE_AUTH_API_URL}
@@ -106,8 +106,8 @@ services:
     container_name: vaarta-livekit
     command: --dev
     ports:
-      - "7880:7880"   # HTTP/WebSocket
-      - "7881:7881"   # RTC TCP
+      - "7880:7880" # HTTP/WebSocket
+      - "7881:7881" # RTC TCP
       - "50000-50100:50000-50100/udp"
     # LiveKit requires a very specific format for keys with a space
     environment:
