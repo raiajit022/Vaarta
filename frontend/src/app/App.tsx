@@ -235,11 +235,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 font-sans bg-[#faf9f7] dark:bg-[#14120F] text-stone-900 dark:text-stone-100 selection:bg-emerald-500/30 transition-colors duration-200">
+    <>
       <Toaster position="top-center" richColors />
-      <BrandPanel />
+      <div className="min-h-screen grid lg:grid-cols-2 font-sans bg-[#faf9f7] dark:bg-[#14120F] text-stone-900 dark:text-stone-100 selection:bg-emerald-500/30 transition-colors duration-200">
+        <BrandPanel />
 
-      {/* Auth side */}
+        {/* Auth side */}
       <div className="flex flex-col min-h-screen">
         <header className="flex items-center justify-between p-6 md:px-8">
           <div className="lg:hidden cursor-pointer" onClick={() => switchMode('landing')}>
@@ -398,33 +399,6 @@ export default function App() {
                     </button>
                   ) : (
                     <>
-                      {authMode === 'login' && (
-                        <button
-                          type="button"
-                          className="w-full h-10 flex items-center justify-center gap-2 rounded-[6px] bg-white dark:bg-[#1E1B16] border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-[#262119] text-stone-700 dark:text-stone-200 text-[14px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path
-                              d="M14.94 8.16c0-.52-.047-1.02-.133-1.5H8v2.84h3.883a3.32 3.32 0 0 1-1.44 2.18v1.81h2.33c1.367-1.26 2.157-3.11 2.157-5.33z"
-                              fill="#4285F4"
-                            />
-                            <path
-                              d="M8 15c1.95 0 3.587-.647 4.78-1.75l-2.33-1.81c-.647.433-1.473.69-2.45.69-1.883 0-3.48-1.27-4.05-2.98H1.54v1.87A7.002 7.002 0 0 0 8 15z"
-                              fill="#34A853"
-                            />
-                            <path
-                              d="M3.95 9.15a4.205 4.205 0 0 1-.22-1.35c0-.47.08-.92.22-1.35V4.58H1.54A7.002 7.002 0 0 0 1 8c0 1.13.27 2.2.54 3.02l2.41-1.87z"
-                              fill="#FBBC05"
-                            />
-                            <path
-                              d="M8 3.82c1.062 0 2.013.365 2.763 1.08l2.07-2.07C11.587.892 9.95.2 8 .2A7.002 7.002 0 0 0 1.54 4.58l2.41 1.87C4.52 5.09 6.117 3.82 8 3.82z"
-                              fill="#EA4335"
-                            />
-                          </svg>
-                          Continue with Google
-                        </button>
-                      )}
-
                       <p className="text-center text-[13.5px] text-stone-500 dark:text-stone-400">
                         {authMode === 'register' ? "Already have an account?" : "Don't have an account?"}{" "}
                         <button
@@ -455,5 +429,6 @@ export default function App() {
         </footer>
       </div>
     </div>
+    </>
   );
 }
