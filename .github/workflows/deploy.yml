@@ -1,0 +1,111 @@
+name: Deploy Backend Services to Azure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'auth-service/**'
+      - 'user-service/**'
+      - 'meeting-service/**'
+      - 'notification-service/**'
+      - 'ai-service/**'
+
+env:
+  REGISTRY: vaartaregistry
+  RESOURCE_GROUP: vaarta-rg
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.filter.outputs.auth }}
+      user: ${{ steps.filter.outputs.user }}
+      meeting: ${{ steps.filter.outputs.meeting }}
+      notification: ${{ steps.filter.outputs.notification }}
+      ai: ${{ steps.filter.outputs.ai }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth:
+              - 'auth-service/**'
+            user:
+              - 'user-service/**'
+            meeting:
+              - 'meeting-service/**'
+            notification:
+              - 'notification-service/**'
+            ai:
+              - 'ai-service/**'
+
+  deploy-auth:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.auth == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build & Push to ACR
+        run: az acr build --registry ${{ env.REGISTRY }} --image auth-service:${{ github.sha }} --image auth-service:latest ./auth-service
+      - name: Deploy to Container App
+        run: az containerapp update --name auth-service --resource-group ${{ env.RESOURCE_GROUP }} --image ${{ env.REGISTRY }}.azurecr.io/auth-service:${{ github.sha }}
+
+  deploy-user:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.user == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build & Push to ACR
+        run: az acr build --registry ${{ env.REGISTRY }} --image user-service:${{ github.sha }} --image user-service:latest ./user-service
+      - name: Deploy to Container App
+        run: az containerapp update --name user-service --resource-group ${{ env.RESOURCE_GROUP }} --image ${{ env.REGISTRY }}.azurecr.io/user-service:${{ github.sha }}
+
+  deploy-meeting:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.meeting == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build & Push to ACR
+        run: az acr build --registry ${{ env.REGISTRY }} --image meeting-service:${{ github.sha }} --image meeting-service:latest ./meeting-service
+      - name: Deploy to Container App
+        run: az containerapp update --name meeting-service --resource-group ${{ env.RESOURCE_GROUP }} --image ${{ env.REGISTRY }}.azurecr.io/meeting-service:${{ github.sha }}
+
+  deploy-notification:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.notification == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build & Push to ACR
+        run: az acr build --registry ${{ env.REGISTRY }} --image notification-service:${{ github.sha }} --image notification-service:latest ./notification-service
+      - name: Deploy to Container App
+        run: az containerapp update --name notification-service --resource-group ${{ env.RESOURCE_GROUP }} --image ${{ env.REGISTRY }}.azurecr.io/notification-service:${{ github.sha }}
+
+  deploy-ai:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ai == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build & Push to ACR
+        run: az acr build --registry ${{ env.REGISTRY }} --image ai-service:${{ github.sha }} --image ai-service:latest ./ai-service
+      - name: Deploy to Container App
+        run: az containerapp update --name ai-service --resource-group ${{ env.RESOURCE_GROUP }} --image ${{ env.REGISTRY }}.azurecr.io/ai-service:${{ github.sha }}

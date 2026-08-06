@@ -7,6 +7,8 @@ import com.vaarta.meeting.model.MeetingParticipant;
 import com.vaarta.meeting.model.MeetingStatus;
 import com.vaarta.meeting.repository.MeetingParticipantRepository;
 import com.vaarta.meeting.repository.MeetingRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
  * managing participant lists, and integrating with the notification-service
  * for asynchronous email invites.
  */
+@Slf4j
 @Service
 public class MeetingService {
 
@@ -104,6 +107,7 @@ public class MeetingService {
         }
 
         meeting = meetingRepository.save(meeting);
+        log.info("Meeting persisted: id={}, joinCode={}, status={}", meeting.getId(), joinCode, meeting.getStatus());
 
         // Add host as participant
         MeetingParticipant hostParticipant = new MeetingParticipant();
@@ -143,6 +147,7 @@ public class MeetingService {
      * meeting.
      */
     public void inviteParticipants(UUID meetingId, java.util.List<String> emails) {
+        log.info("Sending invites for meeting {} to {} recipients", meetingId, emails.size());
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new RuntimeException("Meeting not found"));
 
@@ -162,7 +167,7 @@ public class MeetingService {
                         .retrieve()
                         .toBodilessEntity();
             } catch (Exception e) {
-                System.err.println("Failed to send invite to " + email + ": " + e.getMessage());
+                log.error("Failed to send invite to {}: {}", email, e.getMessage());
             }
         }
     }
@@ -190,6 +195,7 @@ public class MeetingService {
      * @return the meeting details.
      * @throws RuntimeException if the meeting is not found.
      */
+    @Cacheable(value = "meetings", key = "#id")
     public MeetingResponse getMeeting(UUID id) {
         return meetingRepository.findById(id)
                 .map(this::mapToResponse)
@@ -237,6 +243,7 @@ public class MeetingService {
      * @throws RuntimeException if the meeting does not exist or is inactive.
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "meetingsByJoinCode", key = "#joinCode")
     public MeetingResponse guestJoinMeeting(String joinCode) {
         Meeting meeting = meetingRepository.findByJoinCode(joinCode)
                 .orElseThrow(() -> new RuntimeException("Meeting not found"));
@@ -267,6 +274,7 @@ public class MeetingService {
         meeting.setStatus(MeetingStatus.ENDED);
         meeting.setEndedAt(ZonedDateTime.now());
         meetingRepository.save(meeting);
+        log.info("Meeting {} ended by host {}", id, userId);
 
         // Run recap and email pipeline synchronously to prevent Azure throttle
         try {
@@ -290,27 +298,30 @@ public class MeetingService {
                                     "title", updated.getTitle(),
                                     "summary", updated.getSummary() != null ? updated.getSummary() : "",
                                     "actionItems", updated.getActionItems() != null ? updated.getActionItems() : "",
-                                    "sentiment", updated.getSentimentLabel() != null ? updated.getSentimentLabel() : ""
-                            )
-                    ))
+                                    "sentiment",
+                                    updated.getSentimentLabel() != null ? updated.getSentimentLabel() : "")))
                     .retrieve()
-                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+                    .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>() {
+                    });
 
-            String htmlBody = emailResponse != null && emailResponse.containsKey("emailHtml") ? (String) emailResponse.get("emailHtml") : null;
-            
+            String htmlBody = emailResponse != null && emailResponse.containsKey("emailHtml")
+                    ? (String) emailResponse.get("emailHtml")
+                    : null;
+
             if (htmlBody != null && !htmlBody.isEmpty()) {
                 // 5. Fetch participant emails from auth service
                 List<UUID> participantIds = participantRepository.findByMeetingId(id).stream()
                         .map(MeetingParticipant::getUserId)
                         .collect(Collectors.toList());
-                
+
                 if (!participantIds.isEmpty()) {
                     java.util.Map<UUID, String> emailMap = authRestClient.post()
                             .uri("/internal/users/emails")
                             .body(java.util.Map.of("userIds", participantIds))
                             .retrieve()
-                            .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<UUID, String>>() {});
-                            
+                            .body(new org.springframework.core.ParameterizedTypeReference<java.util.Map<UUID, String>>() {
+                            });
+
                     if (emailMap != null) {
                         for (String email : emailMap.values()) {
                             restClient.post()
@@ -319,8 +330,7 @@ public class MeetingService {
                                             "recipientEmail", email,
                                             "meetingTitle", updated.getTitle(),
                                             "htmlBody", htmlBody,
-                                            "meetingId", id
-                                    ))
+                                            "meetingId", id))
                                     .retrieve()
                                     .toBodilessEntity();
                         }
@@ -328,8 +338,7 @@ public class MeetingService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Failed to process meeting recap: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Failed to process meeting recap for meeting {}: {}", id, e.getMessage(), e);
         }
     }
 

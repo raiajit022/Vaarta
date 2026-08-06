@@ -32,6 +32,20 @@ spring:
     baseline-on-migrate: false
     table: flyway_schema_history_auth
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour default TTL for users
+      cache-null-values: false
+
 # ── JWT ─────────────────────────────────────────────────────────────────────
 jwt:
   secret: ${JWT-SECRET}            # must be ≥256 bits for HS256; set in .env
@@ -63,3 +77,11 @@ server:
   port: 8080
   error:
     include-message: always      # return error message in JSON response body
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.vaarta: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{requestId}] - %msg%n"

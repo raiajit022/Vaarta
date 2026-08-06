@@ -3,6 +3,7 @@ package com.vaarta.meeting.controller;
 import com.vaarta.meeting.dto.CreateMeetingRequest;
 import com.vaarta.meeting.dto.MeetingResponse;
 import com.vaarta.meeting.service.MeetingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.UUID;
  * Handles creating, joining, and listing meetings for the currently
  * authenticated user.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/meetings")
 public class MeetingController {
@@ -46,7 +48,10 @@ public class MeetingController {
      */
     @PostMapping
     public ResponseEntity<MeetingResponse> createMeeting(@RequestBody CreateMeetingRequest request) {
-        MeetingResponse response = meetingService.createMeeting(request, getCurrentUserId());
+        UUID userId = getCurrentUserId();
+        log.info("POST /api/meetings - Creating meeting, host={}", userId);
+        MeetingResponse response = meetingService.createMeeting(request, userId);
+        log.info("Meeting created: id={}, joinCode={}, host={}", response.getId(), response.getJoinCode(), userId);
         return ResponseEntity.ok(response);
     }
 
@@ -58,7 +63,9 @@ public class MeetingController {
      */
     @GetMapping("/me")
     public ResponseEntity<List<MeetingResponse>> getMyMeetings() {
-        return ResponseEntity.ok(meetingService.getMyMeetings(getCurrentUserId()));
+        UUID userId = getCurrentUserId();
+        log.info("GET /api/meetings/me - user={}", userId);
+        return ResponseEntity.ok(meetingService.getMyMeetings(userId));
     }
 
     /**
@@ -69,6 +76,7 @@ public class MeetingController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<MeetingResponse> getMeeting(@PathVariable UUID id) {
+        log.info("GET /api/meetings/{} - Fetching meeting details", id);
         return ResponseEntity.ok(meetingService.getMeeting(id));
     }
 
@@ -82,7 +90,11 @@ public class MeetingController {
      */
     @PostMapping("/join/{joinCode}")
     public ResponseEntity<MeetingResponse> joinMeeting(@PathVariable String joinCode) {
-        return ResponseEntity.ok(meetingService.joinMeeting(joinCode, getCurrentUserId()));
+        UUID userId = getCurrentUserId();
+        log.info("POST /api/meetings/join/{} - user={}", joinCode, userId);
+        MeetingResponse response = meetingService.joinMeeting(joinCode, userId);
+        log.info("User {} joined meeting id={}", userId, response.getId());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -99,6 +111,7 @@ public class MeetingController {
             @RequestBody java.util.Map<String, String> payload) {
 
         String guestName = payload.getOrDefault("guestName", "Guest");
+        log.info("POST /api/meetings/guest-join/{} - guestName='{}'", joinCode, guestName);
 
         // Use meetingService to validate and fetch the meeting
         MeetingResponse meeting = meetingService.guestJoinMeeting(joinCode);
@@ -106,6 +119,7 @@ public class MeetingController {
         // Generate a random ID for the guest participant
         UUID guestId = UUID.randomUUID();
         String token = liveKitTokenService.generateToken(meeting.getId(), guestId, guestName, false);
+        log.info("Guest '{}' joined meeting id={}, guestId={}", guestName, meeting.getId(), guestId);
 
         return ResponseEntity.ok(java.util.Map.of(
                 "meeting", meeting,
@@ -120,8 +134,10 @@ public class MeetingController {
     public ResponseEntity<Void> inviteParticipants(@PathVariable UUID id,
             @RequestBody java.util.Map<String, java.util.List<String>> payload) {
         java.util.List<String> emails = payload.get("emails");
+        log.info("POST /api/meetings/{}/invite - emails={}", id, emails);
         if (emails != null && !emails.isEmpty()) {
             meetingService.inviteParticipants(id, emails);
+            log.info("Invites sent for meeting {} to {} recipients", id, emails.size());
         }
         return ResponseEntity.ok().build();
     }
@@ -135,7 +151,9 @@ public class MeetingController {
     @PostMapping("/{id}/end")
     public ResponseEntity<Void> endMeeting(@PathVariable UUID id) {
         UUID userId = getCurrentUserId();
+        log.info("POST /api/meetings/{}/end - user={}", id, userId);
         meetingService.endMeeting(id, userId);
+        log.info("Meeting {} ended by user {}", id, userId);
         return ResponseEntity.ok().build();
     }
 
@@ -192,7 +210,9 @@ public class MeetingController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMeeting(@PathVariable UUID id) {
         UUID userId = getCurrentUserId();
+        log.info("DELETE /api/meetings/{} - user={}", id, userId);
         meetingService.deleteMeeting(id, userId);
+        log.info("Meeting {} deleted by user {}", id, userId);
         return ResponseEntity.ok().build();
     }
 }

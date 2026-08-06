@@ -34,6 +34,20 @@ spring:
     create-schemas: true
     table: flyway_schema_history_meeting
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10 minutes default TTL
+      cache-null-values: false
+
 # ── JWT ─────────────────────────────────────────────────────────────────────
 jwt:
   secret: ${JWT-SECRET}
@@ -57,3 +71,11 @@ livekit:
     key: ${LIVEKIT-API-KEY}
     secret: ${LIVEKIT-API-SECRET}
   url: ${LIVEKIT_URL:wss://vaarta-gtmvkch7.livekit.cloud}
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.vaarta: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{requestId}] - %msg%n"
