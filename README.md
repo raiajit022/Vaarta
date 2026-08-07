@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="./frontend/public/icon.png" alt="Vaarta Logo" width="120" />
   <h1>Vaarta</h1>
   <p><strong>Enterprise-grade, AI-native Web Conferencing Platform</strong></p>
 
