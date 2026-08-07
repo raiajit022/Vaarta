@@ -29,11 +29,14 @@
 ## ✨ Features
 
 - **🎥 Ultra-Low Latency Video & Audio**: Powered by LiveKit for enterprise-grade WebRTC performance.
-- **🔐 Secure Authentication**: JWT-based secure authentication and user management.
+- **🔐 Secure Authentication & Secrets**: JWT-based secure authentication, with credentials safely managed via **Azure Key Vault**.
 - **⚡ Instant & Scheduled Meetings**: Launch instant rooms or schedule upcoming team syncs with real-time dynamic dashboard notifications.
 - **📩 Smart Invites**: Invite participants directly via email with seamless background integration using Resend.
-- **🤖 AI Integration Ready**: Foundation built to seamlessly inject AI agents for transcription, summarization, and sentiment tracking.
+- **🤖 AI Integration**: Foundation built to seamlessly inject AI agents for transcription, summarization, and sentiment tracking.
 - **☁️ Cloud-Native Scalability**: Fully containerized architecture capable of scaling to zero to optimize costs.
+- **🚀 Automated CI/CD**: Automated deployment pipelines using **GitHub Actions** for seamless continuous integration and continuous deployment to Azure.
+- **📊 Centralized Logging & Telemetry**: Integrated with **Azure Application Insights** for comprehensive application monitoring and distributed tracing.
+- **⚡ High-Performance Caching**: Utilizes **Azure Cache for Redis** to instantly serve guest join sessions and dramatically reduce database loads.
 
 ---
 
@@ -76,10 +79,11 @@ graph TD;
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Zustand
 - **Backend**: Java 17, Spring Boot 3, Spring Security, Spring Data JPA
-- **Database**: PostgreSQL with Flyway Migrations
+- **Database & Caching**: PostgreSQL with Flyway Migrations, Azure Cache for Redis
 - **Real-time Video**: LiveKit SDKs
 - **AI / ML**: Python, FastAPI, OpenAI
-- **Infrastructure**: Docker, Docker Compose, Azure Container Apps, Vercel
+- **Infrastructure & DevOps**: Docker, Azure Container Apps, Vercel, GitHub Actions CI/CD
+- **Security & Monitoring**: Azure Key Vault, Azure Application Insights
 
 ---
 

@@ -209,12 +209,12 @@ export default function App() {
     return (
       <>
         <Toaster position="top-center" richColors />
-        <GuestMeetingFlow 
-          joinCode={joinCode} 
+        <GuestMeetingFlow
+          joinCode={joinCode}
           onBack={() => {
             setAuthMode('landing');
             window.history.replaceState({}, '', '/');
-          }} 
+          }}
         />
       </>
     );
@@ -241,194 +241,194 @@ export default function App() {
         <BrandPanel />
 
         {/* Auth side */}
-      <div className="flex flex-col min-h-screen">
-        <header className="flex items-center justify-between p-6 md:px-8">
-          <div className="lg:hidden cursor-pointer" onClick={() => switchMode('landing')}>
-            <VaartaLogo />
-          </div>
-          <div className="hidden lg:block cursor-pointer" onClick={() => switchMode('landing')}>
-            <span className="text-[13px] font-medium text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors">← Back to website</span>
-          </div>
-          <button
-            onClick={() => setIsDark(!isDark)}
-            className="p-2 rounded-full text-stone-500 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            aria-label="Toggle theme"
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </header>
+        <div className="flex flex-col min-h-screen">
+          <header className="flex items-center justify-between p-6 md:px-8">
+            <div className="lg:hidden cursor-pointer" onClick={() => switchMode('landing')}>
+              <VaartaLogo />
+            </div>
+            <div className="hidden lg:block cursor-pointer" onClick={() => switchMode('landing')}>
+              <span className="text-[13px] font-medium text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors">← Back to website</span>
+            </div>
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="p-2 rounded-full text-stone-500 hover:bg-stone-200/60 dark:text-stone-400 dark:hover:bg-stone-800 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </header>
 
-        <main className="flex-1 flex items-center justify-center p-6 py-12">
-          <div className="w-full max-w-[420px]">
-            <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[16px] shadow-[0_8px_30px_rgb(28,25,23,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] overflow-hidden">
-              <div className="p-8">
+          <main className="flex-1 flex items-center justify-center p-6 py-12">
+            <div className="w-full max-w-[420px]">
+              <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[16px] shadow-[0_8px_30px_rgb(28,25,23,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] overflow-hidden">
+                <div className="p-8">
 
-                {errors.general && (
-                  <div className="mb-6 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md text-red-600 dark:text-red-400 text-sm">
-                    {errors.general}
-                  </div>
-                )}
-                {errors.success && (
-                  <div className="mb-6 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-md text-emerald-600 dark:text-emerald-400 text-sm">
-                    {errors.success}
-                  </div>
-                )}
-
-                {authMode === 'verify-email' ? (
-                  <VerifyEmailScreen token={urlToken} switchMode={switchMode} />
-                ) : authMode === 'check-email' ? (
-                  <CheckEmailScreen
-                    email={email}
-                    timer={timer}
-                    setTimer={setTimer}
-                    loading={loading}
-                    setLoading={setLoading}
-                    setAuthMode={setAuthMode}
-                    switchMode={switchMode}
-                  />
-                ) : (
-                  <>
-                    <div className="mb-8">
-                      <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-white mb-2">
-                        {submitted
-                          ? "Check your email"
-                          : authMode === 'register'
-                            ? "Create your account"
-                            : authMode === 'forgot'
-                              ? "Forgot password?"
-                              : authMode === 'reset'
-                                ? "Set new password"
-                                : "Log in to Vaarta"}
-                      </h1>
-                      <p className="text-[14px] leading-relaxed text-stone-500 dark:text-stone-400">
-                        {submitted
-                          ? "We sent a secure link to your workspace. You can safely close this window."
-                          : authMode === 'register'
-                            ? "Join your team's workspace on Vaarta."
-                            : authMode === 'forgot'
-                              ? "No worries, we'll send you reset instructions. Please enter your work email."
-                              : authMode === 'reset'
-                                ? "Your new password must be different from previously used passwords."
-                                : "Enter your work email to join your team's workspace."}
-                      </p>
+                  {errors.general && (
+                    <div className="mb-6 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md text-red-600 dark:text-red-400 text-sm">
+                      {errors.general}
                     </div>
+                  )}
+                  {errors.success && (
+                    <div className="mb-6 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-md text-emerald-600 dark:text-emerald-400 text-sm">
+                      {errors.success}
+                    </div>
+                  )}
 
-                    {submitted ? (
-                      <div className="flex flex-col gap-6">
-                        <button
-                          onClick={() => {
-                            setSubmitted(false);
-                            setEmail("");
-                            setPassword("");
-                            if (authMode === 'register') {
-                              setName("");
-                              setMobile("");
-                              setConfirmPassword("");
-                              setTerms(false);
-                            }
-                          }}
-                          className="text-[13px] font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors flex items-center gap-1 w-fit"
-                        >
-                          Return to {authMode === 'register' ? "registration" : "login"}
-                        </button>
-                      </div>
-                    ) : authMode === 'forgot' ? (
-                      <ForgotScreen
-                        email={email}
-                        setEmail={setEmail}
-                        errors={errors}
-                        setErrors={setErrors}
-                        loading={loading}
-                        handleSubmit={handleSubmit}
-                      />
-                    ) : authMode === 'reset' ? (
-                      <ResetScreen
-                        password={password}
-                        setPassword={setPassword}
-                        confirmPassword={confirmPassword}
-                        setConfirmPassword={setConfirmPassword}
-                        errors={errors}
-                        setErrors={setErrors}
-                        loading={loading}
-                        handleSubmit={handleSubmit}
-                      />
-                    ) : authMode === 'register' ? (
-                      <RegisterScreen
-                        name={name}
-                        setName={setName}
-                        email={email}
-                        setEmail={setEmail}
-                        mobile={mobile}
-                        setMobile={setMobile}
-                        password={password}
-                        setPassword={setPassword}
-                        confirmPassword={confirmPassword}
-                        setConfirmPassword={setConfirmPassword}
-                        terms={terms}
-                        setTerms={setTerms}
-                        errors={errors}
-                        setErrors={setErrors}
-                        loading={loading}
-                        handleSubmit={handleSubmit}
-                      />
-                    ) : (
-                      <LoginScreen
-                        email={email}
-                        setEmail={setEmail}
-                        password={password}
-                        setPassword={setPassword}
-                        errors={errors}
-                        setErrors={setErrors}
-                        loading={loading}
-                        handleSubmit={handleSubmit}
-                        switchMode={switchMode}
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-
-              {!submitted && authMode !== 'check-email' && authMode !== 'verify-email' && (
-                <div className="bg-stone-50/60 dark:bg-[#211D17]/50 border-t border-stone-100 dark:border-stone-800/80 p-8 pt-6 flex flex-col items-center gap-6">
-                  {(authMode === 'forgot' || authMode === 'reset') ? (
-                    <button
-                      onClick={() => switchMode('login')}
-                      className="text-[13.5px] font-medium text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"
-                    >
-                      ← Back to log in
-                    </button>
+                  {authMode === 'verify-email' ? (
+                    <VerifyEmailScreen token={urlToken} switchMode={switchMode} />
+                  ) : authMode === 'check-email' ? (
+                    <CheckEmailScreen
+                      email={email}
+                      timer={timer}
+                      setTimer={setTimer}
+                      loading={loading}
+                      setLoading={setLoading}
+                      setAuthMode={setAuthMode}
+                      switchMode={switchMode}
+                    />
                   ) : (
                     <>
-                      <p className="text-center text-[13.5px] text-stone-500 dark:text-stone-400">
-                        {authMode === 'register' ? "Already have an account?" : "Don't have an account?"}{" "}
-                        <button
-                          onClick={() => switchMode(authMode === 'register' ? 'login' : 'register')}
-                          className="font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors hover:underline underline-offset-2"
-                        >
-                          {authMode === 'register' ? "Log in" : "Register"}
-                        </button>
-                      </p>
+                      <div className="mb-8">
+                        <h1 className="text-xl font-semibold tracking-tight text-stone-900 dark:text-white mb-2">
+                          {submitted
+                            ? "Check your email"
+                            : authMode === 'register'
+                              ? "Create your account"
+                              : authMode === 'forgot'
+                                ? "Forgot password?"
+                                : authMode === 'reset'
+                                  ? "Set new password"
+                                  : "Log in to Vaarta"}
+                        </h1>
+                        <p className="text-[14px] leading-relaxed text-stone-500 dark:text-stone-400">
+                          {submitted
+                            ? "We sent a secure link to your workspace. You can safely close this window."
+                            : authMode === 'register'
+                              ? "Join your team's workspace on Vaarta."
+                              : authMode === 'forgot'
+                                ? "No worries, we'll send you reset instructions. Please enter your work email."
+                                : authMode === 'reset'
+                                  ? "Your new password must be different from previously used passwords."
+                                  : "Enter your work email to join your team's workspace."}
+                        </p>
+                      </div>
+
+                      {submitted ? (
+                        <div className="flex flex-col gap-6">
+                          <button
+                            onClick={() => {
+                              setSubmitted(false);
+                              setEmail("");
+                              setPassword("");
+                              if (authMode === 'register') {
+                                setName("");
+                                setMobile("");
+                                setConfirmPassword("");
+                                setTerms(false);
+                              }
+                            }}
+                            className="text-[13px] font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors flex items-center gap-1 w-fit"
+                          >
+                            Return to {authMode === 'register' ? "registration" : "login"}
+                          </button>
+                        </div>
+                      ) : authMode === 'forgot' ? (
+                        <ForgotScreen
+                          email={email}
+                          setEmail={setEmail}
+                          errors={errors}
+                          setErrors={setErrors}
+                          loading={loading}
+                          handleSubmit={handleSubmit}
+                        />
+                      ) : authMode === 'reset' ? (
+                        <ResetScreen
+                          password={password}
+                          setPassword={setPassword}
+                          confirmPassword={confirmPassword}
+                          setConfirmPassword={setConfirmPassword}
+                          errors={errors}
+                          setErrors={setErrors}
+                          loading={loading}
+                          handleSubmit={handleSubmit}
+                        />
+                      ) : authMode === 'register' ? (
+                        <RegisterScreen
+                          name={name}
+                          setName={setName}
+                          email={email}
+                          setEmail={setEmail}
+                          mobile={mobile}
+                          setMobile={setMobile}
+                          password={password}
+                          setPassword={setPassword}
+                          confirmPassword={confirmPassword}
+                          setConfirmPassword={setConfirmPassword}
+                          terms={terms}
+                          setTerms={setTerms}
+                          errors={errors}
+                          setErrors={setErrors}
+                          loading={loading}
+                          handleSubmit={handleSubmit}
+                        />
+                      ) : (
+                        <LoginScreen
+                          email={email}
+                          setEmail={setEmail}
+                          password={password}
+                          setPassword={setPassword}
+                          errors={errors}
+                          setErrors={setErrors}
+                          loading={loading}
+                          handleSubmit={handleSubmit}
+                          switchMode={switchMode}
+                        />
+                      )}
                     </>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-        </main>
 
-        <footer className="p-6 text-center">
-          <p className="text-[13px] font-medium text-stone-400 dark:text-stone-600 flex items-center justify-center gap-1.5">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path
-                d="M6 1L1.5 3v3c0 2.625 1.95 5.085 4.5 5.625C8.55 11.085 10.5 8.625 10.5 6V3L6 1z"
-                fill="currentColor"
-              />
-            </svg>
-            SOC 2 Type II Certified
-          </p>
-        </footer>
+                {!submitted && authMode !== 'check-email' && authMode !== 'verify-email' && (
+                  <div className="bg-stone-50/60 dark:bg-[#211D17]/50 border-t border-stone-100 dark:border-stone-800/80 p-8 pt-6 flex flex-col items-center gap-6">
+                    {(authMode === 'forgot' || authMode === 'reset') ? (
+                      <button
+                        onClick={() => switchMode('login')}
+                        className="text-[13.5px] font-medium text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"
+                      >
+                        ← Back to log in
+                      </button>
+                    ) : (
+                      <>
+                        <p className="text-center text-[13.5px] text-stone-500 dark:text-stone-400">
+                          {authMode === 'register' ? "Already have an account?" : "Don't have an account?"}{" "}
+                          <button
+                            onClick={() => switchMode(authMode === 'register' ? 'login' : 'register')}
+                            className="font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors hover:underline underline-offset-2"
+                          >
+                            {authMode === 'register' ? "Log in" : "Register"}
+                          </button>
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+
+          <footer className="p-6 text-center">
+            <p className="text-[13px] font-medium text-stone-400 dark:text-stone-600 flex items-center justify-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path
+                  d="M6 1L1.5 3v3c0 2.625 1.95 5.085 4.5 5.625C8.55 11.085 10.5 8.625 10.5 6V3L6 1z"
+                  fill="currentColor"
+                />
+              </svg>
+              SOC 2 Type II Certified
+            </p>
+          </footer>
+        </div>
       </div>
-    </div>
     </>
   );
 }
