@@ -139,4 +139,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ---
 <div align="center">
   <i>Built with ❤️ by the Vaarta Team.</i>
+  <i>Contact: support@vaarta.site</i>
 </div>
