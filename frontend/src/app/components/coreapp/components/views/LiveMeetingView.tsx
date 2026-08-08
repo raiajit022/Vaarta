@@ -1,13 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from 'react';
 import { LiveKitRoom, VideoConference, RoomAudioRenderer, useChat } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { useMeetingStore } from "../../../../store/useMeetingStore";
-import { useAuthStore } from "../../../../store/useAuthStore";
-import { MeetingReactions } from "./MeetingReactions";
+import { Copy, Sparkles, X, UserPlus, PhoneOff, Link2, Send } from 'lucide-react';
+import { toast } from 'sonner';
+import { useMeetingStore } from '../../../../store/useMeetingStore';
+import { useAuthStore } from '../../../../store/useAuthStore';
+import { Button } from '../../../../ui/Button';
+import { Input } from '../../../../ui/Input';
+import { VaartaMark } from '../../../../ui/Logo';
+import { Spinner } from '../../../../ui/Spinner';
+import { confirm } from '../../../../ui/confirm';
+import { copyToClipboard } from '../../../../ui/clipboard';
+import { cn } from '../../../../ui/cn';
+import { MeetingReactions } from './MeetingReactions';
 
 /**
- * A hidden component that listens to the LiveKit data channel for chat messages.
- * If the local user sends a message starting with "@bot", it triggers the AI command workflow.
+ * Watches the LiveKit chat channel and forwards any local `@bot` message to the
+ * backend, which injects the reply back into the data channel.
  */
 function BotChatListener({ meetingId }: { meetingId: string }) {
   const { chatMessages } = useChat();
@@ -18,10 +27,12 @@ function BotChatListener({ meetingId }: { meetingId: string }) {
     if (chatMessages.length === 0) return;
     const latest = chatMessages[chatMessages.length - 1];
 
-    // Process only if it's new, originated from the local user, and starts with @bot
-    if (latest.id !== lastProcessedId && latest.from?.isLocal && latest.message.trim().toLowerCase().startsWith("@bot")) {
+    if (
+      latest.id !== lastProcessedId &&
+      latest.from?.isLocal &&
+      latest.message.trim().toLowerCase().startsWith('@bot')
+    ) {
       setLastProcessedId(latest.id);
-      // Fire and forget; the backend will inject the response into the LiveKit data channel
       sendBotCommand(meetingId, latest.message).catch(console.error);
     }
   }, [chatMessages, lastProcessedId, meetingId, sendBotCommand]);
@@ -29,53 +40,80 @@ function BotChatListener({ meetingId }: { meetingId: string }) {
   return null;
 }
 
+const QUICK_COMMANDS = [
+  { label: 'Summarise so far', command: '@bot summarize the meeting so far' },
+  { label: 'List action items', command: '@bot list action items' },
+  { label: 'Read the room', command: '@bot how is the mood' },
+];
+
+/** Assistant launcher in the meeting top bar. */
 function AIAssistantPanel() {
   const { send } = useChat();
   const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  const handleCommand = (cmd: string) => {
-    if (send) {
-      send(cmd).catch(console.error);
-    }
+  useEffect(() => {
+    if (!isOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsOpen(false);
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen]);
+
+  const run = (cmd: string) => {
+    send?.(cmd).catch(console.error);
     setIsOpen(false);
+    toast.success('Asked the assistant — watch the chat panel');
   };
 
   return (
-    <div className="absolute top-4 right-4 z-[100]">
-      <button
+    <div className="relative pointer-events-auto" ref={ref}>
+      <Button
+        variant={isOpen ? 'primary' : 'secondary'}
+        size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-stone-800 hover:bg-stone-700 text-white p-2.5 rounded-full shadow-lg border border-stone-700 transition-colors"
-        title="AI Assistant"
+        leading={<Sparkles className="w-4 h-4" />}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-      </button>
+        Assistant
+      </Button>
 
       {isOpen && (
-        <div className="absolute top-12 right-0 bg-stone-900/95 backdrop-blur text-white rounded-xl shadow-2xl border border-stone-700 w-64 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-11 right-0 w-[280px] rounded-xl border border-line bg-surface elev-4 p-4 animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-stone-100 flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-              AI Assistant
+            <h3 className="flex items-center gap-1.5 t-small font-semibold text-ink">
+              <Sparkles className="w-3.5 h-3.5 text-iris" /> Assistant
             </h3>
-            <button onClick={() => setIsOpen(false)} className="text-stone-400 hover:text-stone-200">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-ink-3 hover:text-ink p-1 -mr-1 rounded"
+              aria-label="Close assistant"
+            >
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <p className="text-[13px] text-stone-400 mb-3 leading-relaxed">
-            Type <span className="font-mono text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">@bot</span> in the chat to ask questions, or use a quick action:
+          <p className="t-caption text-ink-3 leading-relaxed mb-3">
+            Type <span className="font-mono text-iris bg-iris-soft px-1 py-0.5 rounded">@bot</span> in
+            the chat to ask anything, or pick one:
           </p>
 
-          <div className="space-y-2">
-            <button onClick={() => handleCommand("@bot summarize the meeting so far")} className="w-full text-left px-3 py-2 text-[13px] font-medium text-stone-200 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors border border-stone-700 hover:border-stone-500 flex items-center gap-2">
-              <span className="text-base">📝</span> Summarize
-            </button>
-            <button onClick={() => handleCommand("@bot list action items")} className="w-full text-left px-3 py-2 text-[13px] font-medium text-stone-200 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors border border-stone-700 hover:border-stone-500 flex items-center gap-2">
-              <span className="text-base">📋</span> Action Items
-            </button>
-            <button onClick={() => handleCommand("@bot how is the mood")} className="w-full text-left px-3 py-2 text-[13px] font-medium text-stone-200 bg-stone-800 hover:bg-stone-700 rounded-md transition-colors border border-stone-700 hover:border-stone-500 flex items-center gap-2">
-              <span className="text-base">🎭</span> Sentiment
-            </button>
+          <div className="space-y-1.5">
+            {QUICK_COMMANDS.map((c) => (
+              <button
+                key={c.command}
+                onClick={() => run(c.command)}
+                className="w-full flex items-center gap-2 px-3 h-9 rounded-md t-small font-medium text-ink-2 bg-surface-inset border border-line hover:border-iris-line hover:text-ink transition-colors text-left"
+              >
+                <Send className="w-3.5 h-3.5 text-ink-3 shrink-0" />
+                {c.label}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -83,143 +121,194 @@ function AIAssistantPanel() {
   );
 }
 
+/** Host-only "your room is ready" card, shown once when a host opens a meeting. */
+function InviteCard({
+  meeting,
+  onDismiss,
+  onInvite,
+}: {
+  meeting: any;
+  onDismiss: () => void;
+  onInvite: (emails: string[]) => Promise<void>;
+}) {
+  const [isInviting, setIsInviting] = useState(false);
+  const [emailsInput, setEmailsInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const link = `${window.location.origin}/join/${meeting.joinCode}`;
+
+  const handleSend = async () => {
+    const emails = emailsInput.split(',').map((e) => e.trim()).filter(Boolean);
+    if (!emails.length) return;
+    setIsSending(true);
+    try {
+      await onInvite(emails);
+      setEmailsInput('');
+      setIsInviting(false);
+      onDismiss();
+      toast.success(`Invite sent to ${emails.length} ${emails.length === 1 ? 'person' : 'people'}`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not send the invites. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <div className="pointer-events-auto w-[320px] rounded-xl border border-line bg-surface elev-4 p-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
+      <div className="flex items-start justify-between mb-1">
+        <h3 className="t-h3 text-ink">Your room is live</h3>
+        <button
+          onClick={onDismiss}
+          className="text-ink-3 hover:text-ink p-1 -mr-1 -mt-0.5 rounded"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="t-caption text-ink-3 mb-4">Bring people in — guests don't need an account.</p>
+
+      {isInviting ? (
+        <div className="mb-4">
+          <Input
+            placeholder="jane@company.com, dev@company.com"
+            value={emailsInput}
+            onChange={(e) => setEmailsInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            autoFocus
+            className="mb-2"
+          />
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" className="flex-1" onClick={() => setIsInviting(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" className="flex-1" onClick={handleSend} loading={isSending}>
+              Send
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          className="w-full mb-4"
+          onClick={() => setIsInviting(true)}
+          leading={<UserPlus className="w-4 h-4" />}
+        >
+          Invite by email
+        </Button>
+      )}
+
+      <div className="flex items-center gap-2 rounded-lg bg-surface-inset border border-line p-2">
+        <span className="flex-1 t-caption text-ink-2 truncate font-mono">{link}</span>
+        <button
+          onClick={() => copyToClipboard(link, 'Invite link copied')}
+          className="p-1.5 rounded-md text-ink-3 hover:text-ink hover:bg-surface-hover transition-colors shrink-0"
+          title="Copy invite link"
+        >
+          <Link2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Renders the active video conferencing room using LiveKit.
- * Connects to the LiveKit server using the retrieved access token
- * and displays the default `VideoConference` UI.
+ * The live conference.
  *
- * @param props.meeting The active meeting object data.
- * @param props.onLeave Callback invoked when the user disconnects or leaves the room.
+ * All Vaarta chrome now sits in two docks — a glass top bar and a bottom-left
+ * host cluster — instead of four independently-positioned floating buttons at
+ * competing z-indexes. LiveKit itself is retimed to the Ink & Iris tokens in
+ * `theme.css`, so the embedded UI no longer reads as a third-party widget.
  */
-export function LiveMeetingView({ meeting, onLeave, initialToken, initialLivekitUrl }: { meeting: any, onLeave: () => void, initialToken?: string, initialLivekitUrl?: string }) {
-  const [activeTab, setActiveTab] = useState<"chat" | "people" | "agent">("chat");
+export function LiveMeetingView({
+  meeting,
+  onLeave,
+  initialToken,
+  initialLivekitUrl,
+}: {
+  meeting: any;
+  onLeave: () => void;
+  initialToken?: string;
+  initialLivekitUrl?: string;
+}) {
   const { fetchLiveKitToken, inviteParticipants, endMeeting } = useMeetingStore();
   const [token, setToken] = useState<string | null>(initialToken || null);
   const [serverUrl, setServerUrl] = useState<string | null>(initialLivekitUrl || null);
-  const currentUser = useAuthStore(state => state.user);
-  const [showInvitePopup, setShowInvitePopup] = useState(() => currentUser?.id === meeting?.hostId);
-  const [isInviting, setIsInviting] = useState(false);
-  const [emailsInput, setEmailsInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  const currentUser = useAuthStore((state) => state.user);
+  const isHost = !!currentUser?.id && currentUser.id === meeting?.hostId;
+
+  const [showInviteCard, setShowInviteCard] = useState(() => isHost);
   const [isEndingMeeting, setIsEndingMeeting] = useState(false);
 
   useEffect(() => {
     if (!meeting?.id || token) return;
-    fetchLiveKitToken(meeting.id).then((res) => {
-      setToken(res.token);
-      setServerUrl(res.livekitUrl);
-    }).catch(console.error);
+    fetchLiveKitToken(meeting.id)
+      .then((res) => {
+        setToken(res.token);
+        setServerUrl(res.livekitUrl);
+      })
+      .catch((e) => {
+        console.error(e);
+        setConnectError('Could not connect to the meeting server.');
+      });
   }, [meeting, fetchLiveKitToken, token]);
 
+  const handleEndMeeting = async () => {
+    const ok = await confirm({
+      title: 'End meeting for everyone?',
+      description:
+        'All participants will be disconnected immediately and the join code will stop working.',
+      confirmLabel: 'End meeting',
+      destructive: true,
+    });
+    if (!ok) return;
+
+    setIsEndingMeeting(true);
+    try {
+      await endMeeting(meeting.id);
+      onLeave();
+    } catch (e) {
+      console.error('Failed to end meeting', e);
+      toast.error('Could not end the meeting. Please try again.');
+      setIsEndingMeeting(false);
+    }
+  };
+
+  if (connectError) {
+    return (
+      <div className="h-screen w-screen bg-canvas flex flex-col items-center justify-center gap-4 text-center px-6">
+        <p className="t-h3 text-ink">{connectError}</p>
+        <p className="t-small text-ink-3 max-w-sm">
+          Check your connection and try opening the meeting link again.
+        </p>
+        <Button variant="secondary" onClick={onLeave}>
+          Back
+        </Button>
+      </div>
+    );
+  }
+
   if (!token || !serverUrl) {
-    return <div className="flex items-center justify-center h-screen bg-[#14120F] text-white">Connecting...</div>;
+    return (
+      <div className="h-screen w-screen bg-canvas flex flex-col items-center justify-center gap-4">
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full bg-iris-soft blur-xl animate-breathe" />
+          <VaartaMark size={40} className="relative text-iris" />
+        </div>
+        <div className="flex items-center gap-2 t-small text-ink-3">
+          <Spinner size={14} /> Connecting to your meeting…
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="h-screen w-screen bg-[#14120F] relative">
-      <div className="absolute top-4 left-4 z-50 bg-stone-900/80 backdrop-blur text-white px-4 py-2 rounded-lg text-sm border border-stone-800 flex items-center gap-3">
-        <div>
-          <span className="text-stone-400">Meeting Code:</span> <span className="font-mono font-medium">{meeting.joinCode}</span>
-        </div>
-        <button
-          onClick={() => {
-            navigator.clipboard.writeText(meeting.joinCode);
-            alert("Meeting code copied to clipboard!");
-          }}
-          className="bg-stone-800 hover:bg-stone-700 px-2 py-1 rounded text-xs transition-colors"
-        >
-          Copy
-        </button>
-      </div>
-      {/* Google Meet style "Your meeting's ready" popup */}
-      {showInvitePopup && (
-        <div className="absolute bottom-24 left-6 z-[100] bg-white rounded-xl shadow-2xl p-5 w-80 animate-in slide-in-from-bottom-4 fade-in duration-300">
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="text-[16px] font-medium text-gray-900">Your meeting's ready</h3>
-            <button
-              onClick={() => setShowInvitePopup(false)}
-              className="text-gray-400 hover:text-gray-600 p-1 -mr-1 -mt-1 rounded-full hover:bg-gray-100"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-            </button>
-          </div>
-
-          {isInviting ? (
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Comma separated emails..."
-                value={emailsInput}
-                onChange={(e) => setEmailsInput(e.target.value)}
-                className="w-full text-sm px-3 py-2 border rounded mb-2 outline-none focus:border-blue-500"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsInviting(false)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-full text-sm font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    const emails = emailsInput.split(',').map(e => e.trim()).filter(Boolean);
-                    if (emails.length === 0) return;
-                    setIsSending(true);
-                    try {
-                      await inviteParticipants(meeting.id, emails);
-                      setIsInviting(false);
-                      setEmailsInput("");
-                      setShowInvitePopup(false);
-                      alert("Invites have been successfully sent to the participants!");
-                    } catch (e) {
-                      console.error(e);
-                      alert("Failed to send invites.");
-                    } finally {
-                      setIsSending(false);
-                    }
-                  }}
-                  disabled={isSending}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {isSending ? 'Sending...' : 'Send Invites'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsInviting(true)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full py-2 px-4 flex items-center justify-center gap-2 font-medium text-sm transition-colors mb-4"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>
-              Add others
-            </button>
-          )}
-
-          <p className="text-xs text-gray-500 mb-2">
-            Or share this meeting link with others you want in the meeting
-          </p>
-
-          <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 mb-3">
-            <span className="flex-1 text-sm text-gray-700 truncate font-mono">
-              {window.location.origin}/join/{meeting.joinCode}
-            </span>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/join/${meeting.joinCode}`);
-                alert("Meeting link copied to clipboard!");
-              }}
-              className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-200"
-              title="Copy joining link"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-            </button>
-          </div>
-        </div>
-      )}
-
+    <div className="h-screen w-screen bg-canvas relative overflow-hidden">
       <LiveKitRoom
-        video={true}
-        audio={true}
+        video
+        audio
         token={token}
         serverUrl={serverUrl}
         onDisconnected={onLeave}
@@ -227,35 +316,55 @@ export function LiveMeetingView({ meeting, onLeave, initialToken, initialLivekit
         style={{ height: '100vh', width: '100vw' }}
       >
         <BotChatListener meetingId={meeting.id} />
-        <AIAssistantPanel />
         <VideoConference />
         <RoomAudioRenderer />
-        <MeetingReactions isHost={currentUser?.id === meeting?.hostId} />
 
-        {currentUser?.id === meeting?.hostId && (
-          <div className="absolute bottom-6 left-6 z-[100]">
+        {/* ---- Top dock: identity + assistant ---- */}
+        <div className="absolute top-0 inset-x-0 z-40 pointer-events-none px-4 py-3 flex items-start justify-between gap-3">
+          <div className="pointer-events-auto flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-xl border border-line bg-[var(--scrim)] backdrop-blur-xl">
+            <VaartaMark size={17} className="text-iris shrink-0" />
+            <div className="min-w-0 max-w-[220px]">
+              <p className="t-caption font-medium text-ink truncate leading-tight">
+                {meeting?.title || 'Meeting'}
+              </p>
+              <p className="t-caption text-ink-3 font-mono leading-tight">{meeting.joinCode}</p>
+            </div>
             <button
-              onClick={async () => {
-                if (window.confirm("Are you sure you want to end this meeting for everyone?")) {
-                  setIsEndingMeeting(true);
-                  try {
-                    await endMeeting(meeting.id);
-                    onLeave();
-                  } catch (e) {
-                    console.error("Failed to end meeting", e);
-                    alert("Failed to end meeting.");
-                    setIsEndingMeeting(false);
-                  }
-                }
-              }}
-              disabled={isEndingMeeting}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-lg border border-red-500 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => copyToClipboard(meeting.joinCode, 'Meeting code copied')}
+              className="p-1.5 rounded-md text-ink-3 hover:text-ink hover:bg-surface-hover transition-colors shrink-0"
+              title="Copy meeting code"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1-1.56 1.293 8.744 8.744 0 0 0-8.919-4.816c-2.43.34-4.715 1.572-6.42 3.277l-.66-.66a10.744 10.744 0 0 1 6.354-5.669z" /><path d="M14 14l-4 4-4-4" /><path d="M10 18V9" /><path d="M3 3l18 18" /></svg>
-              {isEndingMeeting ? "Ending..." : "End Meeting for All"}
+              <Copy className="w-3.5 h-3.5" />
             </button>
           </div>
-        )}
+
+          <AIAssistantPanel />
+        </div>
+
+        {/* ---- Bottom-left: host cluster ---- */}
+        <div className="absolute bottom-6 left-6 z-40 pointer-events-none flex flex-col items-start gap-3">
+          {isHost && showInviteCard && (
+            <InviteCard
+              meeting={meeting}
+              onDismiss={() => setShowInviteCard(false)}
+              onInvite={(emails) => inviteParticipants(meeting.id, emails)}
+            />
+          )}
+
+          {isHost && (
+            <Button
+              variant="danger"
+              onClick={handleEndMeeting}
+              loading={isEndingMeeting}
+              leading={!isEndingMeeting ? <PhoneOff className="w-4 h-4" /> : undefined}
+              className={cn('pointer-events-auto elev-3')}
+            >
+              {isEndingMeeting ? 'Ending…' : 'End for all'}
+            </Button>
+          )}
+        </div>
+
+        <MeetingReactions isHost={isHost} />
       </LiveKitRoom>
     </div>
   );

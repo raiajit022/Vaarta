@@ -1,44 +1,556 @@
-@import "tailwindcss";
+/* ============================================================================
+   VAARTA — "Ink & Iris"
+   ----------------------------------------------------------------------------
+   Dark-first design system. Every colour in the product resolves through a
+   semantic token defined here, so re-skinning the app is a single-file edit.
+   Components must never hardcode a hex value.
+
+   Layers:
+     1. Palette      — raw semantic tokens, flipped by .light / .dark on <html>
+     2. Tailwind map — exposes the tokens as utilities (bg-surface, text-ink…)
+     3. Base         — element defaults
+     4. Type scale   — t-display … t-caption
+     5. Utilities    — elevation, glow, aurora, focus, scrollbars
+     6. LiveKit      — retheme the embedded conference UI to match
+   ========================================================================== */
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+/* ---------------------------------------------------------------------------
+   1. PALETTE — dark is the default; .light overrides
+   ------------------------------------------------------------------------ */
 
-  /* Vaarta accent — refined jade/emerald */
-  --color-accent-50: #ecfdf5;
-  --color-accent-100: #d1fae5;
-  --color-accent-400: #34d399;
-  --color-accent-500: #10b981;
-  --color-accent-600: #059669;
-  --color-accent-700: #047857;
-  --color-accent-800: #065f46;
+:root {
+  color-scheme: dark;
 
-  /* Warm stone neutrals */
-  --color-stone-50: #faf9f7;
-  --color-stone-100: #f4f2ee;
-  --color-stone-200: #e9e5df;
-  --color-stone-300: #d6d1c7;
-  --color-stone-400: #a8a196;
-  --color-stone-500: #78716c;
-  --color-stone-600: #57534e;
-  --color-stone-700: #44403c;
-  --color-stone-800: #292524;
-  --color-stone-900: #1c1917;
+  /* Ground */
+  --canvas: #0a0a0c;
+  --canvas-raised: #0f0f13;
+  --surface: #131317;
+  --surface-hover: #1a1a20;
+  --surface-inset: #1e1e26;
+
+  /* Lines */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-hover: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.22);
+
+  /* Text */
+  --ink: #f5f5f7;
+  --ink-2: #a3a3af;
+  --ink-3: #6c6c7a;
+
+  /* Brand — Iris */
+  --iris: #7c6bff;
+  --iris-hover: #8f81ff;
+  --iris-active: #6553f0;
+  --iris-soft: rgba(124, 107, 255, 0.14);
+  --iris-line: rgba(124, 107, 255, 0.32);
+  --iris-glow: rgba(124, 107, 255, 0.45);
+  --on-iris: #ffffff;
+
+  /* Warm counterpoint — Saffron (presence, reactions, people) */
+  --saffron: #ffb454;
+  --saffron-ink: #ffc477;
+  --saffron-soft: rgba(255, 180, 84, 0.14);
+  --saffron-line: rgba(255, 180, 84, 0.3);
+  --on-saffron: #1a1200;
+
+  /* Semantics — strictly functional, never brand */
+  --live: #3dd68c;
+  --live-ink: #5ee3a3;
+  --live-soft: rgba(61, 214, 140, 0.14);
+  --live-line: rgba(61, 214, 140, 0.3);
+
+  --danger: #ff5d5d;
+  --danger-hover: #ff7373;
+  --danger-ink: #ff8080;
+  --danger-soft: rgba(255, 93, 93, 0.14);
+  --danger-line: rgba(255, 93, 93, 0.3);
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 16px 48px -8px rgba(0, 0, 0, 0.65);
+  --shadow-4: 0 32px 80px -12px rgba(0, 0, 0, 0.75);
+  --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* Scrim behind modals */
+  --scrim: rgba(4, 4, 6, 0.72);
 }
 
+:root.light {
+  color-scheme: light;
+
+  --canvas: #fafafb;
+  --canvas-raised: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f5f5f8;
+  --surface-inset: #f0f0f4;
+
+  --line: rgba(12, 12, 20, 0.09);
+  --line-hover: rgba(12, 12, 20, 0.16);
+  --line-strong: rgba(12, 12, 20, 0.26);
+
+  --ink: #0d0d12;
+  --ink-2: #55555f;
+  --ink-3: #85858f;
+
+  /* Deepened so it clears contrast on white */
+  --iris: #6353e8;
+  --iris-hover: #5544d4;
+  --iris-active: #4636be;
+  --iris-soft: rgba(99, 83, 232, 0.1);
+  --iris-line: rgba(99, 83, 232, 0.26);
+  --iris-glow: rgba(99, 83, 232, 0.3);
+  --on-iris: #ffffff;
+
+  --saffron: #f59e0b;
+  --saffron-ink: #a45c00;
+  --saffron-soft: rgba(245, 158, 11, 0.12);
+  --saffron-line: rgba(245, 158, 11, 0.3);
+  --on-saffron: #1a1200;
+
+  --live: #12a05e;
+  --live-ink: #0b7a46;
+  --live-soft: rgba(18, 160, 94, 0.12);
+  --live-line: rgba(18, 160, 94, 0.28);
+
+  --danger: #e5484d;
+  --danger-hover: #d13639;
+  --danger-ink: #c22a2e;
+  --danger-soft: rgba(229, 72, 77, 0.1);
+  --danger-line: rgba(229, 72, 77, 0.26);
+
+  --shadow-1: 0 1px 2px rgba(12, 12, 20, 0.05);
+  --shadow-2: 0 4px 16px -2px rgba(12, 12, 20, 0.08);
+  --shadow-3: 0 16px 48px -8px rgba(12, 12, 20, 0.12);
+  --shadow-4: 0 32px 80px -12px rgba(12, 12, 20, 0.16);
+  --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --scrim: rgba(20, 20, 30, 0.4);
+}
+
+/* ---------------------------------------------------------------------------
+   2. TAILWIND MAP — `inline` keeps utilities pointing at the vars, so a theme
+      flip is instant and needs no per-element `dark:` variant.
+   ------------------------------------------------------------------------ */
+
+@theme inline {
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  --color-canvas: var(--canvas);
+  --color-canvas-raised: var(--canvas-raised);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-inset: var(--surface-inset);
+
+  --color-line: var(--line);
+  --color-line-hover: var(--line-hover);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+
+  --color-iris: var(--iris);
+  --color-iris-hover: var(--iris-hover);
+  --color-iris-active: var(--iris-active);
+  --color-iris-soft: var(--iris-soft);
+  --color-iris-line: var(--iris-line);
+  --color-on-iris: var(--on-iris);
+
+  --color-saffron: var(--saffron);
+  --color-saffron-ink: var(--saffron-ink);
+  --color-saffron-soft: var(--saffron-soft);
+  --color-saffron-line: var(--saffron-line);
+  --color-on-saffron: var(--on-saffron);
+
+  --color-live: var(--live);
+  --color-live-ink: var(--live-ink);
+  --color-live-soft: var(--live-soft);
+  --color-live-line: var(--live-line);
+
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+
+  --shadow-e1: var(--shadow-1);
+  --shadow-e2: var(--shadow-2);
+  --shadow-e3: var(--shadow-3);
+  --shadow-e4: var(--shadow-4);
+}
+
+/* ---------------------------------------------------------------------------
+   3. BASE
+   ------------------------------------------------------------------------ */
+
 @layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    @apply bg-stone-50 text-stone-900;
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  .dark body {
-    @apply bg-[#14120F] text-stone-100;
+  ::selection {
+    background: var(--iris-glow);
+    color: var(--ink);
   }
 
-  input[type="text"],
-  input[type="email"],
-  input[type="password"] {
-    @apply transition-shadow duration-200;
+  /* One focus treatment for the entire app */
+  :focus-visible {
+    outline: 2px solid var(--iris);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
+
+  /* Native controls follow the theme instead of blazing white */
+  input,
+  textarea,
+  select {
+    color-scheme: inherit;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-3);
+  }
+
+  /* Date/time pickers are white-on-white in dark mode without this */
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
+  }
+
+  :root.light input[type='date']::-webkit-calendar-picker-indicator,
+  :root.light input[type='time']::-webkit-calendar-picker-indicator {
+    filter: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   4. TYPE SCALE — replaces the arbitrary text-[13.5px] values
+   ------------------------------------------------------------------------ */
+
+@layer components {
+  .t-display {
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 6.5vw, 5rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+
+  .t-display-sm {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    font-weight: 400;
+  }
+
+  .t-h1 {
+    font-size: 1.75rem;
+    line-height: 1.18;
+    letter-spacing: -0.022em;
+    font-weight: 600;
+  }
+
+  .t-h2 {
+    font-size: 1.3125rem;
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+    font-weight: 600;
+  }
+
+  .t-h3 {
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+    font-weight: 600;
+  }
+
+  .t-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+  }
+
+  .t-small {
+    font-size: 0.84375rem;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+  }
+
+  .t-caption {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+  }
+
+  .t-overline {
+    font-size: 0.6875rem;
+    line-height: 1.3;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .t-mono {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+    font-variant-ligatures: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   5. UTILITIES
+   ------------------------------------------------------------------------ */
+
+@layer utilities {
+  /* Carved surfaces: hairline + ambient shadow + inner top highlight.
+     This is what separates "expensive" from "a div with a border". */
+  .elev-1 {
+    box-shadow: var(--shadow-1), var(--highlight);
+  }
+  .elev-2 {
+    box-shadow: var(--shadow-2), var(--highlight);
+  }
+  .elev-3 {
+    box-shadow: var(--shadow-3), var(--highlight);
+  }
+  .elev-4 {
+    box-shadow: var(--shadow-4), var(--highlight);
+  }
+
+  .glow-iris {
+    box-shadow: 0 0 0 1px var(--iris-line), 0 8px 32px -8px var(--iris-glow);
+  }
+
+  /* Landing-page atmosphere */
+  .aurora {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(90px);
+    pointer-events: none;
+    will-change: opacity, transform;
+  }
+
+  .aurora-iris {
+    background: radial-gradient(circle, var(--iris) 0%, transparent 68%);
+  }
+
+  .aurora-saffron {
+    background: radial-gradient(circle, var(--saffron) 0%, transparent 68%);
+  }
+
+  .text-gradient-iris {
+    background: linear-gradient(135deg, var(--ink) 12%, var(--iris) 96%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Hairline that fades at both ends — used for section rules */
+  .rule-fade {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--line-strong), transparent);
+  }
+
+  /* Fine dot field, adds texture without noise files */
+  .dot-field {
+    background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .grid-field {
+    background-image: linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  .scrollbar-fine {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .scrollbar-fine::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-fine::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 9999px;
+  }
+  .scrollbar-fine::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Slow breathing pulse for "live" affordances */
+  @keyframes vaarta-breathe {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+  }
+  .animate-breathe {
+    animation: vaarta-breathe 2.6s ease-in-out infinite;
+  }
+
+  @keyframes vaarta-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translate3d(3%, -4%, 0) scale(1.08);
+      opacity: 0.8;
+    }
+  }
+  .animate-drift {
+    animation: vaarta-drift 14s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-breathe,
+    .animate-drift {
+      animation: none;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   6. LIVEKIT — retheme the embedded conference UI so the most important
+      screen in the product stops looking like a third-party widget.
+   ------------------------------------------------------------------------ */
+
+.lk-room-container,
+[data-lk-theme='default'] {
+  --lk-bg: var(--canvas);
+  --lk-bg2: var(--surface);
+  --lk-bg3: var(--surface-hover);
+  --lk-bg4: var(--surface-inset);
+  --lk-fg: var(--ink);
+  --lk-fg2: var(--ink-2);
+  --lk-fg3: var(--ink-3);
+  --lk-border-color: var(--line);
+  --lk-accent-bg: var(--iris);
+  --lk-accent2: var(--iris-hover);
+  --lk-accent3: var(--iris-active);
+  --lk-accent4: var(--iris-active);
+  --lk-accent-fg: var(--on-iris);
+  --lk-danger: var(--danger);
+  --lk-danger2: var(--danger-hover);
+  --lk-danger3: var(--danger-hover);
+  --lk-danger4: var(--danger-hover);
+  --lk-danger-fg: #ffffff;
+  --lk-success: var(--live);
+  --lk-control-bg: var(--surface);
+  --lk-control-hover-bg: var(--surface-hover);
+  --lk-control-active-bg: var(--iris-soft);
+  --lk-control-active-hover-bg: var(--iris-soft);
+  --lk-control-fg: var(--ink);
+  --lk-connection-excellent: var(--live);
+  --lk-connection-good: var(--saffron);
+  --lk-connection-poor: var(--danger);
+  --lk-border-radius: 12px;
+  font-family: var(--font-sans);
+}
+
+/* Control bar reads as part of Vaarta, not a bolted-on toolbar */
+.lk-control-bar {
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--canvas) 82%, transparent);
+  backdrop-filter: blur(20px);
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.lk-button {
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.84375rem;
+  transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.lk-button:hover {
+  transform: translateY(-1px);
+}
+
+.lk-disconnect-button {
+  background: var(--danger);
+  color: #fff;
+  border-radius: 9999px;
+  padding-inline: 18px;
+}
+
+.lk-disconnect-button:hover {
+  background: var(--danger-hover);
+}
+
+.lk-participant-tile {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+/* Active speaker gets the brand ring rather than LiveKit blue */
+.lk-participant-tile[data-lk-speaking='true'] {
+  box-shadow: 0 0 0 2px var(--iris), 0 0 28px -6px var(--iris-glow);
+  border-color: transparent;
+}
+
+.lk-participant-metadata-item {
+  background: color-mix(in srgb, var(--canvas) 74%, transparent);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.lk-chat,
+.lk-participant-list {
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+}
+
+.lk-chat-form-input,
+.lk-form-control {
+  background: var(--surface-inset);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+}
+
+.lk-chat-entry {
+  font-size: 0.875rem;
 }

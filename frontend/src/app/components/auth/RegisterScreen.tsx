@@ -1,49 +1,28 @@
-import { Loader2, ArrowRight, Check } from "lucide-react";
-import { InputField } from "../InputField";
-import { PasswordStrength } from "../PasswordStrength";
+import { ArrowRight, Check } from 'lucide-react';
+import { InputField } from '../InputField';
+import { PasswordStrength } from '../PasswordStrength';
+import { Button } from '../../ui/Button';
 
-/**
- * Props for the RegisterScreen component.
- */
 interface RegisterScreenProps {
-  /** The current full name input value. */
   name: string;
-  /** Callback to update the full name input value. */
   setName: (val: string) => void;
-  /** The current email input value. */
   email: string;
-  /** Callback to update the email input value. */
   setEmail: (val: string) => void;
-  /** The current mobile number input value. */
   mobile: string;
-  /** Callback to update the mobile number input value. */
   setMobile: (val: string) => void;
-  /** The current password input value. */
   password: string;
-  /** Callback to update the password input value. */
   setPassword: (val: string) => void;
-  /** The current password confirmation input value. */
   confirmPassword: string;
-  /** Callback to update the password confirmation input value. */
   setConfirmPassword: (val: string) => void;
-  /** Boolean indicating whether the user agreed to the terms. */
   terms: boolean;
-  /** Callback to update the terms agreement state. */
   setTerms: (val: boolean) => void;
-  /** Validation or API errors keyed by field name. */
   errors: { [key: string]: string };
-  /** Callback to update the errors object. */
   setErrors: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
-  /** Indicates if an authentication request is currently in progress. */
   loading: boolean;
-  /** Callback invoked when the user submits the registration form. */
   handleSubmit: (e: React.FormEvent) => void;
 }
 
-/**
- * Renders the registration form for new users.
- * Captures user details, password confirmation, and terms agreement.
- */
+/** Registration form for new users. */
 export function RegisterScreen({
   name,
   setName,
@@ -71,7 +50,7 @@ export function RegisterScreen({
         value={name}
         onChange={(v) => {
           setName(v);
-          if (errors.name) setErrors((e) => ({ ...e, name: "" }));
+          if (errors.name) setErrors((e) => ({ ...e, name: '' }));
         }}
         placeholder="Jane Doe"
         autoComplete="name"
@@ -85,7 +64,7 @@ export function RegisterScreen({
         value={email}
         onChange={(v) => {
           setEmail(v);
-          if (errors.email) setErrors((e) => ({ ...e, email: "" }));
+          if (errors.email) setErrors((e) => ({ ...e, email: '' }));
         }}
         placeholder="name@company.com"
         autoComplete="email"
@@ -104,10 +83,7 @@ export function RegisterScreen({
       />
 
       <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="password"
-          className="text-[13px] font-medium text-stone-700 dark:text-stone-300"
-        >
+        <label htmlFor="password" className="t-small font-medium text-ink-2">
           Password
         </label>
         <InputField
@@ -117,7 +93,7 @@ export function RegisterScreen({
           value={password}
           onChange={(v) => {
             setPassword(v);
-            if (errors.password) setErrors((e) => ({ ...e, password: "" }));
+            if (errors.password) setErrors((e) => ({ ...e, password: '' }));
           }}
           placeholder="••••••••"
           autoComplete="new-password"
@@ -133,62 +109,55 @@ export function RegisterScreen({
         value={confirmPassword}
         onChange={(v) => {
           setConfirmPassword(v);
-          if (errors.confirmPassword) setErrors((e) => ({ ...e, confirmPassword: "" }));
+          if (errors.confirmPassword) setErrors((e) => ({ ...e, confirmPassword: '' }));
         }}
         placeholder="••••••••"
         autoComplete="new-password"
         error={errors.confirmPassword}
       />
 
-      <div className="mt-1 flex items-start gap-2.5 group">
-        <div className="relative flex items-center justify-center mt-0.5">
+      <div className="mt-1 flex items-start gap-2.5">
+        <div className="relative flex items-center justify-center mt-0.5 shrink-0">
           <input
             id="terms"
             type="checkbox"
             checked={terms}
             onChange={(e) => {
               setTerms(e.target.checked);
-              if (errors.terms) setErrors((err) => ({ ...err, terms: "" }));
+              if (errors.terms) setErrors((err) => ({ ...err, terms: '' }));
             }}
-            className="peer appearance-none w-4 h-4 border border-stone-300 dark:border-stone-700 rounded-[4px] bg-white dark:bg-[#1E1B16] checked:bg-emerald-600 checked:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all cursor-pointer"
+            className="peer appearance-none w-4 h-4 rounded border border-line-strong bg-surface-inset checked:bg-iris checked:border-iris transition-colors cursor-pointer"
           />
           <Check
-            size={12}
-            className="absolute text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
-            strokeWidth={3}
+            size={11}
+            strokeWidth={3.5}
+            className="absolute text-on-iris pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
           />
         </div>
-        <label
-          htmlFor="terms"
-          className="text-[13px] leading-snug text-stone-600 dark:text-stone-400 cursor-pointer select-none"
-        >
-          I agree to Vaarta's{" "}
-          <a href="#" className="text-stone-900 dark:text-stone-200 font-medium hover:underline underline-offset-2">Terms of Service</a>
-          {" "}and{" "}
-          <a href="#" className="text-stone-900 dark:text-stone-200 font-medium hover:underline underline-offset-2">Privacy Policy</a>.
+        <label htmlFor="terms" className="t-small leading-snug text-ink-2 cursor-pointer select-none">
+          I agree to Vaarta's{' '}
+          <a href="#" className="text-ink font-medium hover:text-iris underline underline-offset-2">
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a href="#" className="text-ink font-medium hover:text-iris underline underline-offset-2">
+            Privacy Policy
+          </a>
+          .
         </label>
       </div>
-      {errors.terms && (
-        <p className="-mt-3 text-[12px] font-medium text-red-500">{errors.terms}</p>
-      )}
+      {errors.terms && <p className="-mt-3 t-caption font-medium text-danger-ink">{errors.terms}</p>}
 
-      <button
+      <Button
         type="submit"
-        disabled={loading}
-        className="group relative w-full h-10 mt-2 flex items-center justify-center gap-2 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-[14px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:focus:ring-offset-[#1A1712] shadow-[inset_0px_1px_0px_rgba(255,255,255,0.2),0_1px_2px_rgba(6,95,70,0.15)] disabled:opacity-70 disabled:pointer-events-none"
+        loading={loading}
+        className="w-full mt-2 group"
+        trailing={
+          <ArrowRight size={15} className="opacity-70 group-hover:translate-x-0.5 transition-transform" />
+        }
       >
-        {loading ? (
-          <Loader2 size={16} className="animate-spin" />
-        ) : (
-          <>
-            Create account
-            <ArrowRight
-              size={14}
-              className="opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"
-            />
-          </>
-        )}
-      </button>
+        Create account
+      </Button>
     </form>
   );
 }

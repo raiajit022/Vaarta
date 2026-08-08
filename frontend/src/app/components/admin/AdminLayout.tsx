@@ -1,117 +1,108 @@
-import { ReactNode } from "react";
-import { useAuthStore } from "../../store/useAuthStore";
-import { Users, Video, LogOut, ArrowLeft } from "lucide-react";
-import { VaartaLogo } from "../VaartaLogo";
+import { ReactNode } from 'react';
+import { Users, Video, LogOut, ArrowLeft, ShieldOff } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { Logo } from '../../ui/Logo';
+import { Avatar } from '../../ui/Avatar';
+import { Button } from '../../ui/Button';
+import { Badge } from '../../ui/Badge';
+import { cn } from '../../ui/cn';
 
-/**
- * Props for the AdminLayout component.
- */
 interface AdminLayoutProps {
-  /** The content to render inside the main area of the layout. */
   children: ReactNode;
-  /** Callback to change the active route in the admin panel. */
   onNavigate: (route: string) => void;
-  /** The currently active route identifier. */
   currentRoute: string;
 }
 
-/**
- * Layout wrapper for the administrative dashboard.
- * Verifies the user's role is 'ADMIN' and renders the admin sidebar.
- */
+/** Admin shell. Renders an access-denied state for non-admin users. */
 export function AdminLayout({ children, onNavigate, currentRoute }: AdminLayoutProps) {
   const { user, logout } = useAuthStore();
 
-  if (user?.role !== "ADMIN") {
+  if (user?.role !== 'ADMIN') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#14120F]">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-stone-500 mb-4">You do not have permission to view this page.</p>
-          <button onClick={() => window.location.href = "/"} className="text-emerald-600 hover:underline">
-            Return to Dashboard
-          </button>
+      <div className="min-h-screen w-full flex items-center justify-center bg-canvas p-6">
+        <div className="text-center max-w-sm">
+          <div className="w-12 h-12 rounded-xl bg-danger-soft border border-danger-line text-danger-ink flex items-center justify-center mx-auto mb-5">
+            <ShieldOff className="w-5 h-5" />
+          </div>
+          <h1 className="t-h2 text-ink mb-2">Access denied</h1>
+          <p className="t-small text-ink-3 mb-6">This area is restricted to administrators.</p>
+          <Button variant="secondary" onClick={() => onNavigate('dashboard')}>
+            Back to Vaarta
+          </Button>
         </div>
       </div>
     );
   }
 
   const menuItems = [
-    { id: "admin-users", label: "User Management", icon: Users },
-    { id: "admin-meetings", label: "Active Meetings", icon: Video },
+    { id: 'admin-users', label: 'Users', icon: Users },
+    { id: 'admin-meetings', label: 'Meetings', icon: Video },
   ];
 
   return (
-    <div className="min-h-screen flex bg-[#faf9f7] dark:bg-[#14120F] text-stone-900 dark:text-stone-100 transition-colors duration-200">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-stone-200/80 dark:border-stone-800/80 bg-white dark:bg-[#1A1712] flex flex-col">
-        <div className="p-6">
-          <VaartaLogo />
-          <div className="mt-2 text-xs font-semibold text-emerald-600 uppercase tracking-wider">
-            Admin Portal
-          </div>
+    <div className="min-h-screen w-full flex bg-canvas text-ink">
+      <aside className="w-[248px] shrink-0 border-r border-line bg-canvas-raised flex flex-col">
+        <div className="p-5">
+          <Logo size="sm" className="mb-2.5" />
+          <Badge tone="iris">Admin portal</Badge>
         </div>
-        
-        <nav className="flex-1 px-4 py-2 space-y-1">
+
+        <nav className="flex-1 px-3 space-y-0.5">
           {menuItems.map((item) => {
-            const Icon = item.icon;
             const active = currentRoute === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={cn(
+                  'relative w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium transition-colors',
                   active
-                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                    : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800"
-                }`}
+                    ? 'bg-iris-soft text-iris'
+                    : 'text-ink-2 hover:bg-surface-hover hover:text-ink'
+                )}
               >
-                <Icon size={18} />
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-iris" />
+                )}
+                <item.icon size={17} />
                 {item.label}
               </button>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-stone-200/80 dark:border-stone-800/80 space-y-2">
+        <div className="p-3 border-t border-line space-y-1">
           <button
-            onClick={() => onNavigate("dashboard")}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
+            onClick={() => onNavigate('dashboard')}
+            className="w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium text-ink-2 hover:bg-surface-hover hover:text-ink transition-colors"
           >
-            <ArrowLeft size={18} />
-            Back to App
+            <ArrowLeft size={17} />
+            Back to app
           </button>
-          
-          <div className="flex items-center justify-between px-3 py-2 mt-4">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-medium text-sm shrink-0">
-                {user?.fullName?.charAt(0) || user?.email?.charAt(0)}
-              </div>
-              <div className="truncate text-left">
-                <div className="text-sm font-medium truncate">{user?.fullName || "Admin"}</div>
-                <div className="text-xs text-stone-500 dark:text-stone-400 truncate">{user?.email}</div>
-              </div>
+
+          <div className="flex items-center gap-2.5 p-2">
+            <Avatar name={user?.fullName} email={user?.email} src={user?.avatarUrl} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="t-small font-medium text-ink truncate">{user?.fullName || 'Admin'}</p>
+              <p className="t-caption text-ink-3 truncate">{user?.email}</p>
             </div>
           </div>
-          
+
           <button
             onClick={() => {
               logout();
               window.location.reload();
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+            className="w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium text-danger-ink hover:bg-danger-soft transition-colors"
           >
-            <LogOut size={18} />
-            Sign Out
+            <LogOut size={17} />
+            Sign out
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8 max-w-6xl mx-auto">
-          {children}
-        </div>
+      <main className="flex-1 overflow-auto scrollbar-fine">
+        <div className="p-8 max-w-6xl mx-auto">{children}</div>
       </main>
     </div>
   );

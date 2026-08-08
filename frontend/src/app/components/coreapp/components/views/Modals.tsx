@@ -1,29 +1,103 @@
-import React from "react";
-import { X, Copy, CheckCircle2, QrCode } from "lucide-react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Card } from "../ui/Card";
+import React from 'react';
+import { Copy, CheckCircle2, Sparkles, Link2, ListChecks, Gauge, FileText } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '../../../../ui/Button';
+import { Input, Select, Field } from '../../../../ui/Input';
+import { Modal } from '../../../../ui/Modal';
+import { Badge } from '../../../../ui/Badge';
+import { Switch } from '../../../../ui/Switch';
+import { copyToClipboard } from '../../../../ui/clipboard';
+import { useMeetingStore, type Meeting } from '../../../../store/useMeetingStore';
+import { formatDateTime } from '../../../../utils/datetime';
 
-import { useMeetingStore } from "../../../../store/useMeetingStore";
+const joinUrl = (code: string) => `${window.location.origin}/join/${code}`;
 
-export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
+/** Shared "let AI draft this" block used by both create and schedule dialogs. */
+function AgendaAssist({
+  description,
+  setDescription,
+  agenda,
+  onSuggest,
+  isSuggesting,
+}: {
+  description: string;
+  setDescription: (v: string) => void;
+  agenda: string[];
+  onSuggest: () => void;
+  isSuggesting: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-iris-line bg-iris-soft p-4">
+      <div className="flex items-center gap-2 mb-2.5">
+        <Sparkles className="w-4 h-4 text-iris" />
+        <span className="t-small font-semibold text-iris">Draft it for me</span>
+      </div>
+      <div className="flex gap-2">
+        <Input
+          placeholder="What is this meeting about?"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="bg-surface"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onSuggest();
+            }
+          }}
+        />
+        <Button
+          onClick={onSuggest}
+          loading={isSuggesting}
+          disabled={!description.trim()}
+          className="shrink-0"
+        >
+          Suggest
+        </Button>
+      </div>
+
+      {agenda.length > 0 && (
+        <ul className="mt-3.5 space-y-2 rounded-lg bg-surface border border-line p-3">
+          {agenda.map((point, i) => (
+            <li key={i} className="flex gap-2.5 t-small text-ink-2">
+              <span className="text-iris font-mono t-caption mt-0.5">{String(i + 1).padStart(2, '0')}</span>
+              <span className="leading-snug">{point}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ========================================================================== */
+
+export function CreateMeetingModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: (meeting: Meeting) => void;
+}) {
   const { createMeeting, suggestAgenda, isLoading } = useMeetingStore();
-  const [title, setTitle] = React.useState("Sarah's Personal Meeting Room");
-  const [emailsInput, setEmailsInput] = React.useState("");
-  const [agendaDesc, setAgendaDesc] = React.useState("");
+  const [title, setTitle] = React.useState('Instant Meeting');
+  const [emailsInput, setEmailsInput] = React.useState('');
+  const [agendaDesc, setAgendaDesc] = React.useState('');
   const [agenda, setAgenda] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
+  const [waitingRoom, setWaitingRoom] = React.useState(true);
 
   const handleCreate = async () => {
     try {
-      const emails = emailsInput.split(',').map(e => e.trim()).filter(e => e.length > 0);
-      const meeting = await createMeeting(title, undefined, emails, agenda.length > 0 ? agenda : undefined);
+      const emails = emailsInput.split(',').map((e) => e.trim()).filter(Boolean);
+      const meeting = await createMeeting(title, undefined, emails, agenda.length ? agenda : undefined);
       onSuccess(meeting);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error(e?.response?.data?.message || 'Could not create the meeting.');
     }
   };
-  const handleSuggestAgenda = async () => {
+
+  const handleSuggest = async () => {
     if (!agendaDesc.trim()) return;
     try {
       setIsSuggesting(true);
@@ -31,113 +105,100 @@ export function CreateMeetingModal({ onClose, onSuccess }: { onClose: () => void
       if (res.title) setTitle(res.title);
       if (res.agenda) setAgenda(res.agenda);
     } catch (e) {
-      console.error("Failed to suggest agenda", e);
+      console.error('Failed to suggest agenda', e);
+      toast.error('The assistant could not draft an agenda right now.');
     } finally {
       setIsSuggesting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)] max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-stone-100">
-          <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Create Meeting</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto space-y-5">
-          <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
-            <label className="block text-[13px] font-medium text-emerald-900 mb-1.5">Use AI to plan this meeting</label>
-            <div className="flex gap-2">
-              <Input 
-                placeholder="What is this meeting about?" 
-                value={agendaDesc} 
-                onChange={(e) => setAgendaDesc(e.target.value)} 
-                className="bg-white"
-              />
-              <Button onClick={handleSuggestAgenda} disabled={isSuggesting || !agendaDesc.trim()}>
-                {isSuggesting ? 'Thinking...' : 'Suggest'}
-              </Button>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Title</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
-          {agenda.length > 0 && (
-            <div>
-              <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Agenda</label>
-              <div className="bg-stone-50 border border-stone-100 p-3 rounded-lg text-[13.5px] text-stone-700 space-y-1.5">
-                {agenda.map((point, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-emerald-500">•</span>
-                    <span>{point}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between py-2 border-b border-stone-100">
-            <div>
-              <p className="text-[14px] font-medium text-stone-900">Instant Meeting</p>
-              <p className="text-[13px] text-stone-500">Start the meeting immediately</p>
-            </div>
-            <div className="w-10 h-6 bg-emerald-500 rounded-full p-1 cursor-pointer">
-              <div className="w-4 h-4 bg-white rounded-full translate-x-4 shadow-sm transition-transform"></div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between py-2 border-b border-stone-100">
-            <div>
-              <p className="text-[14px] font-medium text-stone-900">Waiting Room</p>
-              <p className="text-[13px] text-stone-500">Admit guests before they join</p>
-            </div>
-            <div className="w-10 h-6 bg-emerald-500 rounded-full p-1 cursor-pointer">
-              <div className="w-4 h-4 bg-white rounded-full translate-x-4 shadow-sm transition-transform"></div>
-            </div>
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Invite Participants</label>
-            <Input placeholder="Enter email addresses, comma separated..." value={emailsInput} onChange={(e) => setEmailsInput(e.target.value)} />
-          </div>
-        </div>
-        <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Meeting'}
+    <Modal
+      onClose={onClose}
+      title="New meeting"
+      description="Opens a room you can share straight away."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
           </Button>
+          <Button onClick={handleCreate} loading={isLoading} disabled={!title.trim()}>
+            Create meeting
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <AgendaAssist
+          description={agendaDesc}
+          setDescription={setAgendaDesc}
+          agenda={agenda}
+          onSuggest={handleSuggest}
+          isSuggesting={isSuggesting}
+        />
+
+        <Field label="Meeting title" htmlFor="cm-title">
+          <Input id="cm-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </Field>
+
+        <div className="flex items-center justify-between gap-6 py-3 border-y border-line">
+          <div>
+            <p className="t-small font-medium text-ink">Waiting room</p>
+            <p className="t-caption text-ink-3 mt-0.5">Admit guests before they join</p>
+          </div>
+          <Switch checked={waitingRoom} onChange={setWaitingRoom} label="Waiting room" />
         </div>
-      </Card>
-    </div>
+
+        <Field
+          label="Invite people"
+          htmlFor="cm-emails"
+          hint="Comma-separated email addresses. They'll get the link by email."
+        >
+          <Input
+            id="cm-emails"
+            placeholder="jane@company.com, dev@company.com"
+            value={emailsInput}
+            onChange={(e) => setEmailsInput(e.target.value)}
+          />
+        </Field>
+      </div>
+    </Modal>
   );
 }
 
-export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (meeting: any) => void }) {
+/* ========================================================================== */
+
+export function ScheduleMeetingModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: (meeting: Meeting) => void;
+}) {
   const { createMeeting, suggestAgenda, isLoading } = useMeetingStore();
-  const [topic, setTopic] = React.useState("Q3 Planning Session");
+  const [topic, setTopic] = React.useState('');
   const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = React.useState("10:00");
-  const [emailsInput, setEmailsInput] = React.useState("");
-  const [agendaDesc, setAgendaDesc] = React.useState("");
+  const [time, setTime] = React.useState('10:00');
+  const [duration, setDuration] = React.useState('60');
+  const [emailsInput, setEmailsInput] = React.useState('');
+  const [agendaDesc, setAgendaDesc] = React.useState('');
   const [agenda, setAgenda] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
+  const [waitingRoom, setWaitingRoom] = React.useState(true);
 
   const handleSchedule = async () => {
     try {
-      // Combine date and time to ISO string
       const scheduledStart = new Date(`${date}T${time}:00`).toISOString();
-      const emails = emailsInput.split(',').map(e => e.trim()).filter(e => e.length > 0);
-      const meeting = await createMeeting(topic, scheduledStart, emails, agenda.length > 0 ? agenda : undefined);
+      const emails = emailsInput.split(',').map((e) => e.trim()).filter(Boolean);
+      const meeting = await createMeeting(topic, scheduledStart, emails, agenda.length ? agenda : undefined);
       onSuccess(meeting);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error(e?.response?.data?.message || 'Could not schedule the meeting.');
     }
   };
-  const handleSuggestAgenda = async () => {
+
+  const handleSuggest = async () => {
     if (!agendaDesc.trim()) return;
     try {
       setIsSuggesting(true);
@@ -145,309 +206,331 @@ export function ScheduleMeetingModal({ onClose, onSuccess }: { onClose: () => vo
       if (res.title) setTopic(res.title);
       if (res.agenda) setAgenda(res.agenda);
     } catch (e) {
-      console.error("Failed to suggest agenda", e);
+      console.error('Failed to suggest agenda', e);
+      toast.error('The assistant could not draft an agenda right now.');
     } finally {
       setIsSuggesting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)] max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-stone-100">
-          <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Schedule Meeting</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto space-y-5">
-          <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
-            <label className="block text-[13px] font-medium text-emerald-900 mb-1.5">Use AI to plan this meeting</label>
-            <div className="flex gap-2">
-              <Input 
-                placeholder="What is this meeting about?" 
-                value={agendaDesc} 
-                onChange={(e) => setAgendaDesc(e.target.value)} 
-                className="bg-white"
-              />
-              <Button onClick={handleSuggestAgenda} disabled={isSuggesting || !agendaDesc.trim()}>
-                {isSuggesting ? 'Thinking...' : 'Suggest'}
-              </Button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Topic</label>
-            <Input placeholder="e.g. Weekly Sync" value={topic} onChange={(e) => setTopic(e.target.value)} />
-          </div>
-
-          {agenda.length > 0 && (
-            <div>
-              <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Meeting Agenda</label>
-              <div className="bg-stone-50 border border-stone-100 p-3 rounded-lg text-[13.5px] text-stone-700 space-y-1.5">
-                {agenda.map((point, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-emerald-500">•</span>
-                    <span>{point}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Date</label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div>
-              <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Time</label>
-              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Duration</label>
-            <select className="w-full h-10 rounded-[6px] border border-stone-200 bg-white px-3 text-[14px] text-stone-900 hover:border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
-              <option>30 minutes</option>
-              <option>45 minutes</option>
-              <option selected>1 hour</option>
-              <option>1.5 hours</option>
-              <option>2 hours</option>
-            </select>
-          </div>
-          <div className="flex items-center justify-between py-2 border-y border-stone-100">
-            <div>
-              <p className="text-[14px] font-medium text-stone-900">Waiting Room</p>
-              <p className="text-[13px] text-stone-500">Admit guests before they join</p>
-            </div>
-            <div className="w-10 h-6 bg-emerald-500 rounded-full p-1 cursor-pointer">
-              <div className="w-4 h-4 bg-white rounded-full translate-x-4 shadow-sm transition-transform"></div>
-            </div>
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Invite Participants</label>
-            <Input placeholder="Enter email addresses, comma separated..." value={emailsInput} onChange={(e) => setEmailsInput(e.target.value)} />
-          </div>
-        </div>
-        <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSchedule} disabled={isLoading}>
-            {isLoading ? 'Scheduling...' : 'Schedule'}
+    <Modal
+      onClose={onClose}
+      title="Schedule a meeting"
+      description="Pick a time and we'll email everyone the link."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
           </Button>
+          <Button onClick={handleSchedule} loading={isLoading} disabled={!topic.trim()}>
+            Schedule
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <AgendaAssist
+          description={agendaDesc}
+          setDescription={setAgendaDesc}
+          agenda={agenda}
+          onSuggest={handleSuggest}
+          isSuggesting={isSuggesting}
+        />
+
+        <Field label="Topic" htmlFor="sm-topic">
+          <Input
+            id="sm-topic"
+            placeholder="e.g. Weekly sync"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+          />
+        </Field>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Date" htmlFor="sm-date">
+            <Input id="sm-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </Field>
+          <Field label="Time" htmlFor="sm-time">
+            <Input id="sm-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </Field>
+          <Field label="Duration" htmlFor="sm-duration">
+            <Select id="sm-duration" value={duration} onChange={(e) => setDuration(e.target.value)}>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+            </Select>
+          </Field>
         </div>
-      </Card>
-    </div>
+
+        <div className="flex items-center justify-between gap-6 py-3 border-y border-line">
+          <div>
+            <p className="t-small font-medium text-ink">Waiting room</p>
+            <p className="t-caption text-ink-3 mt-0.5">Admit guests before they join</p>
+          </div>
+          <Switch checked={waitingRoom} onChange={setWaitingRoom} label="Waiting room" />
+        </div>
+
+        <Field label="Invite people" htmlFor="sm-emails" hint="Comma-separated email addresses.">
+          <Input
+            id="sm-emails"
+            placeholder="jane@company.com, dev@company.com"
+            value={emailsInput}
+            onChange={(e) => setEmailsInput(e.target.value)}
+          />
+        </Field>
+      </div>
+    </Modal>
   );
 }
 
-export function MeetingCreatedModal({ meeting, onClose, onStart }: { meeting: any; onClose: () => void; onStart: () => void }) {
+/* ========================================================================== */
+
+export function MeetingCreatedModal({
+  meeting,
+  onClose,
+  onStart,
+}: {
+  meeting: Meeting;
+  onClose: () => void;
+  onStart: () => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)] p-8 text-center">
-        <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-6 h-6" />
-        </div>
-        <h2 className="text-[20px] font-semibold text-stone-900 tracking-tight mb-2">Meeting Created</h2>
-        <p className="text-[14px] text-stone-500 mb-6">Your meeting is ready to start. Share this code with participants.</p>
-
-        <div className="bg-stone-50 border border-stone-200 rounded-[8px] p-4 mb-6 flex items-center justify-between">
-          <div className="font-mono text-[16px] text-stone-900 font-medium tracking-widest">
-            {meeting?.joinCode || "ERROR-CODE"}
-          </div>
-          <Button variant="ghost" className="h-8 px-2 text-emerald-600 hover:text-emerald-700">
-            <Copy className="w-4 h-4 mr-1.5" /> Copy
-          </Button>
+    <Modal onClose={onClose} size="sm">
+      <div className="text-center pt-2">
+        <div className="w-12 h-12 rounded-xl bg-live-soft border border-live-line text-live-ink flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-5 h-5" />
         </div>
 
-        <div className="flex items-center gap-3 w-full mb-8">
-          <Button variant="outline" className="flex-1 text-stone-600 h-10">
-            <Copy className="w-4 h-4 mr-2" /> Copy Link
-          </Button>
-          <Button variant="outline" className="flex-1 text-stone-600 h-10">
-            <QrCode className="w-4 h-4 mr-2" /> QR Code
-          </Button>
-        </div>
+        <h2 className="t-h2 text-ink mb-2">Your room is ready</h2>
+        <p className="t-small text-ink-3 mb-6">
+          Share the code or the link — guests don't need an account.
+        </p>
+
+        <button
+          onClick={() => copyToClipboard(meeting.joinCode, 'Meeting code copied')}
+          className="w-full mb-3 p-4 rounded-xl bg-surface-inset border border-line hover:border-iris-line transition-colors group"
+        >
+          <span className="block t-overline text-ink-3 mb-1.5">Meeting code</span>
+          <span className="flex items-center justify-center gap-2.5 font-mono text-[20px] font-semibold text-ink tracking-[0.15em]">
+            {meeting.joinCode}
+            <Copy className="w-4 h-4 text-ink-3 group-hover:text-iris transition-colors" />
+          </span>
+        </button>
+
+        <Button
+          variant="outline"
+          className="w-full mb-6"
+          onClick={() => copyToClipboard(joinUrl(meeting.joinCode), 'Invite link copied')}
+          leading={<Link2 className="w-4 h-4" />}
+        >
+          Copy invite link
+        </Button>
 
         <div className="flex flex-col gap-2">
-          <Button onClick={onStart} className="w-full">Start Meeting Now</Button>
-          <Button variant="ghost" onClick={onClose} className="w-full">Back to Dashboard</Button>
+          <Button onClick={onStart} className="w-full">
+            Start meeting now
+          </Button>
+          <Button variant="ghost" onClick={onClose} className="w-full">
+            Later
+          </Button>
         </div>
-      </Card>
-    </div>
+      </div>
+    </Modal>
   );
 }
 
-export function MeetingDetailsModal({ meeting, onClose }: { meeting: any; onClose: () => void }) {
-  const { generateSummary, generateActionItems, generateSentiment, isLoading } = useMeetingStore();
-  const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
-  const [isGeneratingActionItems, setIsGeneratingActionItems] = React.useState(false);
-  const [isGeneratingSentiment, setIsGeneratingSentiment] = React.useState(false);
+/* ========================================================================== */
 
-  const handleGenerateSummary = async () => {
+/** One AI-generated section of the recap, with its own generate action. */
+function RecapSection({
+  icon: Icon,
+  title,
+  available,
+  isEnded,
+  onGenerate,
+  isGenerating,
+  emptyLabel,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  available: boolean;
+  isEnded: boolean;
+  onGenerate: () => void;
+  isGenerating: boolean;
+  emptyLabel: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className="pt-4 border-t border-line first:border-0 first:pt-0">
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <h3 className="flex items-center gap-2 t-small font-semibold text-ink">
+          <Icon className="w-4 h-4 text-ink-3" />
+          {title}
+        </h3>
+        {isEnded && !available && (
+          <Button variant="outline" size="sm" onClick={onGenerate} loading={isGenerating}>
+            Generate
+          </Button>
+        )}
+      </div>
+
+      {available ? (
+        children
+      ) : (
+        <p className="t-small text-ink-3">
+          {isEnded ? emptyLabel : 'Available once the meeting ends.'}
+        </p>
+      )}
+    </section>
+  );
+}
+
+export function MeetingDetailsModal({
+  meeting,
+  onClose,
+}: {
+  meeting: Meeting;
+  onClose: () => void;
+}) {
+  const { generateSummary, generateActionItems, generateSentiment } = useMeetingStore();
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const isEnded = meeting.status === 'ENDED';
+
+  const run = async (key: string, fn: () => Promise<unknown>) => {
     try {
-      setIsGeneratingSummary(true);
-      await generateSummary(meeting.id);
+      setBusy(key);
+      await fn();
     } catch (e) {
       console.error(e);
+      toast.error('The assistant could not process this meeting right now.');
     } finally {
-      setIsGeneratingSummary(false);
+      setBusy(null);
     }
   };
 
-  const handleGenerateActionItems = async () => {
-    try {
-      setIsGeneratingActionItems(true);
-      await generateActionItems(meeting.id);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGeneratingActionItems(false);
-    }
-  };
-
-  const handleGenerateSentiment = async () => {
-    try {
-      setIsGeneratingSentiment(true);
-      await generateSentiment(meeting.id);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGeneratingSentiment(false);
-    }
-  };
-
-  let parsedActionItems: any[] = [];
+  let actionItems: any[] = [];
   try {
-    if (meeting.actionItems) {
-      parsedActionItems = JSON.parse(meeting.actionItems);
-    }
+    if (meeting.actionItems) actionItems = JSON.parse(meeting.actionItems);
   } catch (e) {
-    console.error("Failed to parse action items", e);
+    console.error('Failed to parse action items', e);
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <Card className="relative w-full max-w-lg shadow-[0_20px_60px_rgb(0,0,0,0.12)] max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-stone-100">
-          <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Meeting Details</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 overflow-y-auto space-y-5 flex-grow">
-          <div>
-            <label className="block text-[13px] font-medium text-stone-500 mb-1">Title</label>
-            <p className="text-[15px] text-stone-900 font-medium">{meeting.title}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[13px] font-medium text-stone-500 mb-1">Status</label>
-              <p className="text-[14px] text-stone-900">{meeting.status}</p>
-            </div>
-            <div>
-              <label className="block text-[13px] font-medium text-stone-500 mb-1">Date</label>
-              <p className="text-[14px] text-stone-900">
-                {meeting.startedAt ? new Date(meeting.startedAt).toLocaleString() : 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="pt-4 border-t border-stone-100">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-[13px] font-medium text-stone-900">AI Summary</label>
-              {meeting.status === 'ENDED' && !meeting.summary && (
-                <Button variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
-                  {isGeneratingSummary ? 'Generating...' : 'Generate Summary'}
-                </Button>
-              )}
-            </div>
-            {meeting.summary ? (
-              <div className="bg-stone-50 p-4 rounded-lg text-[14px] text-stone-700 leading-relaxed whitespace-pre-wrap">
-                {meeting.summary}
-              </div>
-            ) : (
-              <div className="text-[13px] text-stone-500 italic">
-                {meeting.status === 'ENDED' ? 'No summary generated yet.' : 'Summary will be available after the meeting ends.'}
-              </div>
-            )}
-          </div>
+  const sentimentTone =
+    meeting.sentimentLabel === 'POSITIVE'
+      ? 'live'
+      : meeting.sentimentLabel === 'TENSE'
+        ? 'danger'
+        : 'neutral';
 
-          <div className="pt-4 border-t border-stone-100">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-[13px] font-medium text-stone-900">Action Items</label>
-              {meeting.status === 'ENDED' && !meeting.actionItems && (
-                <Button variant="outline" onClick={handleGenerateActionItems} disabled={isGeneratingActionItems}>
-                  {isGeneratingActionItems ? 'Generating...' : 'Extract Action Items'}
-                </Button>
-              )}
-            </div>
-            {meeting.actionItems ? (
-              parsedActionItems.length > 0 ? (
-                <div className="space-y-2">
-                  {parsedActionItems.map((item, idx) => (
-                    <div key={idx} className="bg-stone-50 p-3 rounded-lg flex items-start gap-3">
-                      <div className="mt-0.5 text-stone-400"><CheckCircle2 className="w-4 h-4" /></div>
-                      <div>
-                        <p className="text-[14px] text-stone-900 font-medium">{item.task}</p>
-                        {(item.owner || item.dueHint) && (
-                          <div className="flex items-center gap-2 mt-1 text-[12px] text-stone-500">
-                            {item.owner && <span className="bg-stone-200 px-1.5 py-0.5 rounded text-stone-700">{item.owner}</span>}
-                            {item.dueHint && <span>Due: {item.dueHint}</span>}
-                          </div>
+  return (
+    <Modal
+      onClose={onClose}
+      title={meeting.title}
+      size="lg"
+      footer={
+        <Button variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      }
+    >
+      <div className="space-y-5">
+        {/* Facts */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-lg bg-surface-inset border border-line p-3">
+            <p className="t-overline text-ink-3 mb-1.5">Status</p>
+            <Badge tone={meeting.status === 'LIVE' ? 'live' : 'neutral'} pulse={meeting.status === 'LIVE'}>
+              {meeting.status}
+            </Badge>
+          </div>
+          <div className="rounded-lg bg-surface-inset border border-line p-3">
+            <p className="t-overline text-ink-3 mb-1.5">When</p>
+            <p className="t-small text-ink">
+              {formatDateTime(meeting.startedAt || meeting.scheduledStart || meeting.createdAt)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-surface-inset border border-line p-3">
+            <p className="t-overline text-ink-3 mb-1.5">Code</p>
+            <button
+              onClick={() => copyToClipboard(meeting.joinCode, 'Meeting code copied')}
+              className="font-mono t-small text-ink hover:text-iris transition-colors"
+            >
+              {meeting.joinCode}
+            </button>
+          </div>
+        </div>
+
+        <RecapSection
+          icon={FileText}
+          title="Summary"
+          available={!!meeting.summary}
+          isEnded={isEnded}
+          isGenerating={busy === 'summary'}
+          onGenerate={() => run('summary', () => generateSummary(meeting.id))}
+          emptyLabel="No summary generated yet."
+        >
+          <p className="rounded-lg bg-surface-inset border border-line p-4 t-small text-ink-2 leading-relaxed whitespace-pre-wrap">
+            {meeting.summary}
+          </p>
+        </RecapSection>
+
+        <RecapSection
+          icon={ListChecks}
+          title="Action items"
+          available={!!meeting.actionItems}
+          isEnded={isEnded}
+          isGenerating={busy === 'actions'}
+          onGenerate={() => run('actions', () => generateActionItems(meeting.id))}
+          emptyLabel="No action items extracted yet."
+        >
+          {actionItems.length > 0 ? (
+            <ul className="space-y-2">
+              {actionItems.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-3 rounded-lg bg-surface-inset border border-line p-3"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-ink-3 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="t-small text-ink font-medium">{item.task}</p>
+                    {(item.owner || item.dueHint) && (
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {item.owner && <Badge tone="saffron">{item.owner}</Badge>}
+                        {item.dueHint && (
+                          <span className="t-caption text-ink-3">Due {item.dueHint}</span>
                         )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-[13px] text-stone-500 italic">No action items were found in this meeting.</div>
-              )
-            ) : (
-              <div className="text-[13px] text-stone-500 italic">
-                {meeting.status === 'ENDED' ? 'No action items extracted yet.' : 'Action items will be available after the meeting ends.'}
-              </div>
-            )}
-          </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="t-small text-ink-3">No commitments were made in this meeting.</p>
+          )}
+        </RecapSection>
 
-          <div className="pt-4 border-t border-stone-100">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-[13px] font-medium text-stone-900">Meeting Sentiment</label>
-              {meeting.status === 'ENDED' && !meeting.sentimentLabel && (
-                <Button variant="outline" onClick={handleGenerateSentiment} disabled={isGeneratingSentiment}>
-                  {isGeneratingSentiment ? 'Analyzing...' : 'Analyze Sentiment'}
-                </Button>
-              )}
-            </div>
-            {meeting.sentimentLabel ? (
-              <div className="bg-stone-50 p-4 rounded-lg flex flex-col gap-2">
-                <div>
-                  <span className={`inline-block px-2.5 py-1 rounded-full text-[12px] font-bold ${
-                    meeting.sentimentLabel === 'POSITIVE' ? 'bg-emerald-100 text-emerald-700' :
-                    meeting.sentimentLabel === 'TENSE' ? 'bg-red-100 text-red-700' :
-                    'bg-stone-200 text-stone-700'
-                  }`}>
-                    {meeting.sentimentLabel}
-                  </span>
-                </div>
-                {meeting.sentimentReason && (
-                  <p className="text-[13.5px] text-stone-700 leading-relaxed">
-                    {meeting.sentimentReason}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="text-[13px] text-stone-500 italic">
-                {meeting.status === 'ENDED' ? 'No sentiment analysis yet.' : 'Sentiment will be available after the meeting ends.'}
-              </div>
+        <RecapSection
+          icon={Gauge}
+          title="Sentiment"
+          available={!!meeting.sentimentLabel}
+          isEnded={isEnded}
+          isGenerating={busy === 'sentiment'}
+          onGenerate={() => run('sentiment', () => generateSentiment(meeting.id))}
+          emptyLabel="No sentiment analysis yet."
+        >
+          <div className="rounded-lg bg-surface-inset border border-line p-4">
+            <Badge tone={sentimentTone as any}>{meeting.sentimentLabel}</Badge>
+            {meeting.sentimentReason && (
+              <p className="t-small text-ink-2 leading-relaxed mt-2.5">{meeting.sentimentReason}</p>
             )}
           </div>
-        </div>
-        <div className="p-6 border-t border-stone-100 flex justify-end">
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </div>
-      </Card>
-    </div>
+        </RecapSection>
+      </div>
+    </Modal>
   );
 }

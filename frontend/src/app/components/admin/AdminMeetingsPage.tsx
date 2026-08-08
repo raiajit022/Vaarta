@@ -1,10 +1,17 @@
-import { useState, useEffect } from "react";
-import { meetingClient } from "../../apiClient";
-import { Video, Users, Calendar, AlertCircle } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Video, Calendar, AlertCircle, XCircle, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { meetingClient } from '../../apiClient';
+import { Card } from '../../ui/Card';
+import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
+import { Badge } from '../../ui/Badge';
+import { Spinner } from '../../ui/Spinner';
+import { EmptyState } from '../../ui/EmptyState';
+import { confirm } from '../../ui/confirm';
+import { copyToClipboard } from '../../ui/clipboard';
+import { formatDateTime } from '../../utils/datetime';
 
-/**
- * Representation of a meeting for administrative purposes.
- */
 interface AdminMeeting {
   id: string;
   hostId: string;
@@ -18,15 +25,22 @@ interface AdminMeeting {
   participants: any[];
 }
 
-/**
- * Admin portal page for monitoring and managing active meetings.
- * Allows administrators to view all meetings and forcefully end them if necessary.
- */
+const statusTone = (status: string) =>
+  status === 'LIVE'
+    ? 'live'
+    : status === 'SCHEDULED'
+      ? 'iris'
+      : status === 'ENDED'
+        ? 'neutral'
+        : 'danger';
 
+/** Admin view for monitoring meetings and force-ending them. */
 export function AdminMeetingsPage() {
   const [meetings, setMeetings] = useState<AdminMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMeetings();
@@ -35,124 +49,165 @@ export function AdminMeetingsPage() {
   const fetchMeetings = async () => {
     try {
       setLoading(true);
-      const res = await meetingClient.get("/api/admin/meetings");
+      const res = await meetingClient.get('/api/admin/meetings');
       setMeetings(res.data);
+      setError(null);
     } catch (err: any) {
-      setError("Failed to fetch meetings");
+      setError('Could not load meetings.');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const forceEndMeeting = async (meetingId: string) => {
-    if (!confirm("Are you sure you want to forcefully end this meeting?")) return;
-    
+  const forceEndMeeting = async (meeting: AdminMeeting) => {
+    const ok = await confirm({
+      title: 'Force-end this meeting?',
+      description: `"${meeting.title}" will be terminated and everyone disconnected immediately.`,
+      confirmLabel: 'Force end',
+      destructive: true,
+    });
+    if (!ok) return;
+
     try {
-      await meetingClient.post(`/api/admin/meetings/${meetingId}/force-end`);
-      setMeetings(meetings.map(m => m.id === meetingId ? { ...m, status: "ENDED", endedAt: new Date().toISOString() } : m));
+      setBusyId(meeting.id);
+      await meetingClient.post(`/api/admin/meetings/${meeting.id}/force-end`);
+      setMeetings((prev) =>
+        prev.map((m) =>
+          m.id === meeting.id ? { ...m, status: 'ENDED', endedAt: new Date().toISOString() } : m
+        )
+      );
+      toast.success('Meeting ended');
     } catch (err) {
-      console.error("Failed to force end meeting", err);
-      alert("Failed to force end meeting.");
+      console.error('Failed to force end meeting', err);
+      toast.error('Could not end that meeting.');
+    } finally {
+      setBusyId(null);
     }
   };
 
-  if (loading) {
-    return <div className="animate-pulse flex space-x-4"><div className="flex-1 space-y-4 py-1"><div className="h-4 bg-stone-200 rounded w-3/4"></div><div className="space-y-2"><div className="h-4 bg-stone-200 rounded"></div><div className="h-4 bg-stone-200 rounded w-5/6"></div></div></div></div>;
-  }
+  const filtered = meetings.filter((m) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return m.title.toLowerCase().includes(q) || m.joinCode.toLowerCase().includes(q);
+  });
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
+  const liveCount = meetings.filter((m) => m.status === 'LIVE').length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-white">
-          Active Meetings
-        </h1>
-        <div className="text-sm text-stone-500">
-          Total meetings: {meetings.length}
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="t-h1 text-ink mb-1.5">Meetings</h1>
+          <p className="t-body text-ink-3">
+            {meetings.length} total · {liveCount} live now
+          </p>
         </div>
+        <Input
+          icon={<Search className="w-4 h-4" />}
+          placeholder="Search by title or code…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="max-w-xs"
+        />
       </div>
 
-      <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[12px] overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-stone-600 dark:text-stone-300">
-            <thead className="bg-stone-50/50 dark:bg-stone-800/30 text-stone-500 dark:text-stone-400 font-medium border-b border-stone-200/80 dark:border-stone-800/80">
-              <tr>
-                <th className="px-6 py-4 font-medium">Meeting Info</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Timing</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60">
-              {meetings.map((meeting) => (
-                <tr key={meeting.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                      <Video size={14} className="text-stone-400" />
-                      {meeting.title}
-                    </div>
-                    <div className="text-stone-500 dark:text-stone-400 text-xs mt-1">
-                      Code: <span className="font-mono bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded">{meeting.joinCode}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                      meeting.status === 'LIVE' 
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20' 
-                        : meeting.status === 'SCHEDULED'
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-200/60 dark:border-blue-500/20'
-                        : meeting.status === 'ENDED'
-                        ? 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700'
-                        : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-200/60 dark:border-red-500/20'
-                    }`}>
-                      {meeting.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1 text-xs text-stone-500">
-                      {meeting.scheduledStart && (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={12} />
-                          {new Date(meeting.scheduledStart).toLocaleString()}
-                        </div>
-                      )}
-                      {meeting.startedAt && (
-                        <div>Started: {new Date(meeting.startedAt).toLocaleTimeString()}</div>
-                      )}
-                      {meeting.endedAt && (
-                        <div>Ended: {new Date(meeting.endedAt).toLocaleTimeString()}</div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {meeting.status !== 'ENDED' && meeting.status !== 'CANCELLED' && (
-                      <button 
-                        onClick={() => forceEndMeeting(meeting.id)}
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500/20 transition-colors"
-                      >
-                        <AlertCircle size={14} />
-                        Force End
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              
-              {meetings.length === 0 && (
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="p-12 flex justify-center text-ink-3">
+            <Spinner size={20} />
+          </div>
+        ) : error ? (
+          <EmptyState
+            icon={<XCircle className="w-5 h-5" />}
+            title={error}
+            description="Check your connection and try again."
+            action={
+              <Button size="sm" variant="secondary" onClick={fetchMeetings}>
+                Retry
+              </Button>
+            }
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Video className="w-5 h-5" />}
+            title={query ? 'No matches' : 'No meetings yet'}
+            description={query ? 'Try a different title or join code.' : undefined}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-canvas-raised border-b border-line">
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-stone-500">
-                    No meetings found.
-                  </td>
+                  {['Meeting', 'Status', 'Timing', ''].map((h, i) => (
+                    <th
+                      key={h || i}
+                      className={`px-5 py-3 t-overline text-ink-3 font-semibold ${i === 3 ? 'text-right' : ''}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-[var(--line)]">
+                {filtered.map((meeting) => (
+                  <tr key={meeting.id} className="hover:bg-surface-hover transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2 t-small font-medium text-ink">
+                        <Video size={14} className="text-ink-3 shrink-0" />
+                        <span className="truncate max-w-[260px]">{meeting.title}</span>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(meeting.joinCode, 'Join code copied')}
+                        className="mt-1.5 font-mono t-caption text-ink-2 px-1.5 py-0.5 rounded bg-surface-inset border border-line hover:border-line-hover hover:text-ink transition-colors"
+                        title="Copy join code"
+                      >
+                        {meeting.joinCode}
+                      </button>
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <Badge tone={statusTone(meeting.status) as any} pulse={meeting.status === 'LIVE'}>
+                        {meeting.status}
+                      </Badge>
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col gap-1 t-caption text-ink-3">
+                        {meeting.scheduledStart && (
+                          <span className="flex items-center gap-1.5">
+                            <Calendar size={11} />
+                            {formatDateTime(meeting.scheduledStart)}
+                          </span>
+                        )}
+                        {meeting.startedAt && <span>Started {formatDateTime(meeting.startedAt)}</span>}
+                        {meeting.endedAt && <span>Ended {formatDateTime(meeting.endedAt)}</span>}
+                        {!meeting.scheduledStart && !meeting.startedAt && !meeting.endedAt && (
+                          <span>Created {formatDateTime(meeting.createdAt)}</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-3.5 text-right">
+                      {meeting.status !== 'ENDED' && meeting.status !== 'CANCELLED' && (
+                        <Button
+                          variant="dangerGhost"
+                          size="sm"
+                          disabled={busyId === meeting.id}
+                          onClick={() => forceEndMeeting(meeting)}
+                          leading={<AlertCircle size={14} />}
+                        >
+                          Force end
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

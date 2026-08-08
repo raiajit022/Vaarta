@@ -1,10 +1,17 @@
-import { useState, useEffect } from "react";
-import { authClient } from "../../apiClient";
-import { Shield, ShieldAlert, CheckCircle2, XCircle, MoreVertical } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Shield, ShieldAlert, CheckCircle2, XCircle, Users as UsersIcon, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { authClient } from '../../apiClient';
+import { Card } from '../../ui/Card';
+import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
+import { Badge } from '../../ui/Badge';
+import { Avatar } from '../../ui/Avatar';
+import { Spinner } from '../../ui/Spinner';
+import { EmptyState } from '../../ui/EmptyState';
+import { confirm } from '../../ui/confirm';
+import { formatDate } from '../../utils/datetime';
 
-/**
- * Representation of a user for administrative purposes.
- */
 interface AdminUser {
   id: string;
   email: string;
@@ -15,16 +22,13 @@ interface AdminUser {
   createdAt: string;
 }
 
-/**
- * Admin portal page for managing users.
- * Displays a list of all registered users and allows administrators
- * to toggle user roles and disable/enable accounts.
- */
-
+/** Admin view for promoting, demoting, disabling and re-enabling accounts. */
 export function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -33,146 +37,204 @@ export function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await authClient.get("/api/admin/users");
+      const res = await authClient.get('/api/admin/users');
       setUsers(res.data);
+      setError(null);
     } catch (err: any) {
-      setError("Failed to fetch users");
+      setError('Could not load users.');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleRole = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === "ADMIN" ? "USER" : "ADMIN";
+  const toggleRole = async (user: AdminUser) => {
+    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    const ok = await confirm({
+      title: newRole === 'ADMIN' ? 'Grant admin access?' : 'Revoke admin access?',
+      description:
+        newRole === 'ADMIN'
+          ? `${user.email} will be able to manage all users and end any meeting.`
+          : `${user.email} will lose access to the admin portal.`,
+      confirmLabel: newRole === 'ADMIN' ? 'Make admin' : 'Make user',
+      destructive: newRole === 'USER',
+    });
+    if (!ok) return;
+
     try {
-      await authClient.put(`/api/admin/users/${userId}/role`, { role: newRole });
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      setBusyId(user.id);
+      await authClient.put(`/api/admin/users/${user.id}/role`, { role: newRole });
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)));
+      toast.success(`${user.email} is now ${newRole === 'ADMIN' ? 'an admin' : 'a user'}`);
     } catch (err) {
-      console.error("Failed to update role", err);
-      alert("Failed to update user role.");
+      console.error('Failed to update role', err);
+      toast.error('Could not update that role.');
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const toggleDisabled = async (userId: string, currentDisabled: boolean) => {
-    const newDisabled = !currentDisabled;
+  const toggleDisabled = async (user: AdminUser) => {
+    const next = !user.disabled;
+    const ok = await confirm({
+      title: next ? 'Disable this account?' : 'Re-enable this account?',
+      description: next
+        ? `${user.email} will be signed out and blocked from logging in.`
+        : `${user.email} will be able to log in again.`,
+      confirmLabel: next ? 'Disable' : 'Enable',
+      destructive: next,
+    });
+    if (!ok) return;
+
     try {
-      await authClient.put(`/api/admin/users/${userId}/disable`, { disabled: newDisabled });
-      setUsers(users.map(u => u.id === userId ? { ...u, disabled: newDisabled } : u));
+      setBusyId(user.id);
+      await authClient.put(`/api/admin/users/${user.id}/disable`, { disabled: next });
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, disabled: next } : u)));
+      toast.success(next ? 'Account disabled' : 'Account enabled');
     } catch (err) {
-      console.error("Failed to update disabled status", err);
-      alert("Failed to update disabled status.");
+      console.error('Failed to update disabled status', err);
+      toast.error('Could not update that account.');
+    } finally {
+      setBusyId(null);
     }
   };
 
-  if (loading) {
-    return <div className="animate-pulse flex space-x-4"><div className="flex-1 space-y-4 py-1"><div className="h-4 bg-stone-200 rounded w-3/4"></div><div className="space-y-2"><div className="h-4 bg-stone-200 rounded"></div><div className="h-4 bg-stone-200 rounded w-5/6"></div></div></div></div>;
-  }
+  const filtered = users.filter((u) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (u.fullName || '').toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
+  const adminCount = users.filter((u) => u.role === 'ADMIN').length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-white">
-          User Management
-        </h1>
-        <div className="text-sm text-stone-500">
-          Total users: {users.length}
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="t-h1 text-ink mb-1.5">Users</h1>
+          <p className="t-body text-ink-3">
+            {users.length} account{users.length === 1 ? '' : 's'} · {adminCount} admin
+            {adminCount === 1 ? '' : 's'}
+          </p>
         </div>
+        <Input
+          icon={<Search className="w-4 h-4" />}
+          placeholder="Search users…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="max-w-xs"
+        />
       </div>
 
-      <div className="bg-white dark:bg-[#1A1712] border border-stone-200/80 dark:border-stone-800/80 rounded-[12px] overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-stone-600 dark:text-stone-300">
-            <thead className="bg-stone-50/50 dark:bg-stone-800/30 text-stone-500 dark:text-stone-400 font-medium border-b border-stone-200/80 dark:border-stone-800/80">
-              <tr>
-                <th className="px-6 py-4 font-medium">User</th>
-                <th className="px-6 py-4 font-medium">Role</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Joined</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-stone-800/60">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-stone-900 dark:text-stone-100">
-                      {user.fullName || "—"}
-                    </div>
-                    <div className="text-stone-500 dark:text-stone-400 text-xs mt-0.5">
-                      {user.email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'ADMIN' 
-                        ? 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/20' 
-                        : 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 border border-stone-200/60 dark:border-stone-700'
-                    }`}>
-                      {user.role === 'ADMIN' ? <Shield size={12} /> : null}
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-2">
-                      {user.emailVerified ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 size={12} /> Verified
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                          <ShieldAlert size={12} /> Unverified
-                        </span>
-                      )}
-                      
-                      {user.disabled && (
-                        <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
-                          <XCircle size={12} /> Disabled
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-stone-500 text-xs">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => toggleRole(user.id, user.role)}
-                        className="px-3 py-1.5 text-xs font-medium text-stone-700 bg-white border border-stone-300 rounded-md hover:bg-stone-50 dark:bg-stone-800 dark:text-stone-200 dark:border-stone-600 dark:hover:bg-stone-700"
-                      >
-                        Make {user.role === 'ADMIN' ? 'User' : 'Admin'}
-                      </button>
-                      <button 
-                        onClick={() => toggleDisabled(user.id, user.disabled)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md border ${
-                          user.disabled 
-                            ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-                            : 'text-red-700 bg-red-50 border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
-                        }`}
-                      >
-                        {user.disabled ? 'Enable' : 'Disable'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              
-              {users.length === 0 && (
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="p-12 flex justify-center text-ink-3">
+            <Spinner size={20} />
+          </div>
+        ) : error ? (
+          <EmptyState
+            icon={<XCircle className="w-5 h-5" />}
+            title={error}
+            description="Check your connection and try again."
+            action={
+              <Button size="sm" variant="secondary" onClick={fetchUsers}>
+                Retry
+              </Button>
+            }
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<UsersIcon className="w-5 h-5" />}
+            title={query ? 'No matches' : 'No users yet'}
+            description={query ? 'Try a different name or email.' : undefined}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-canvas-raised border-b border-line">
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-stone-500">
-                    No users found.
-                  </td>
+                  {['User', 'Role', 'Status', 'Joined', ''].map((h, i) => (
+                    <th
+                      key={h || i}
+                      className={`px-5 py-3 t-overline text-ink-3 font-semibold ${i === 4 ? 'text-right' : ''}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-[var(--line)]">
+                {filtered.map((user) => (
+                  <tr key={user.id} className="hover:bg-surface-hover transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.fullName} email={user.email} size="sm" />
+                        <div className="min-w-0">
+                          <p className="t-small font-medium text-ink truncate">
+                            {user.fullName || '—'}
+                          </p>
+                          <p className="t-caption text-ink-3 truncate">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <Badge tone={user.role === 'ADMIN' ? 'iris' : 'neutral'}>
+                        {user.role === 'ADMIN' && <Shield size={11} />}
+                        {user.role}
+                      </Badge>
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-col items-start gap-1.5">
+                        {user.emailVerified ? (
+                          <span className="inline-flex items-center gap-1 t-caption text-live-ink">
+                            <CheckCircle2 size={12} /> Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 t-caption text-saffron-ink">
+                            <ShieldAlert size={12} /> Unverified
+                          </span>
+                        )}
+                        {user.disabled && (
+                          <span className="inline-flex items-center gap-1 t-caption text-danger-ink">
+                            <XCircle size={12} /> Disabled
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-3.5 t-caption text-ink-3 whitespace-nowrap">
+                      {formatDate(user.createdAt)}
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={busyId === user.id}
+                          onClick={() => toggleRole(user)}
+                        >
+                          Make {user.role === 'ADMIN' ? 'user' : 'admin'}
+                        </Button>
+                        <Button
+                          variant={user.disabled ? 'secondary' : 'dangerGhost'}
+                          size="sm"
+                          disabled={busyId === user.id}
+                          onClick={() => toggleDisabled(user)}
+                        >
+                          {user.disabled ? 'Enable' : 'Disable'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

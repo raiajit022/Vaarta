@@ -1,13 +1,39 @@
-import React, { useState } from "react";
-import { Video, Mic, Settings, ChevronDown, Check, Globe } from "lucide-react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Card } from "../ui/Card";
-import { useMeetingStore } from "../../../../store/useMeetingStore";
-import { DeviceTester } from "./DeviceTester";
+import { useState } from 'react';
+import { ArrowLeft, Radio, Users } from 'lucide-react';
+import { Button } from '../../../../ui/Button';
+import { Input } from '../../../../ui/Input';
+import { Card } from '../../../../ui/Card';
+import { Logo } from '../../../../ui/Logo';
+import { EmptyState } from '../../../../ui/EmptyState';
+import { useMeetingStore, type Meeting } from '../../../../store/useMeetingStore';
+import { DeviceTester } from './DeviceTester';
 
-export function JoinMeetingView({ onJoin, onBack }: { onJoin: (meeting: any) => void; onBack: () => void }) {
-  const [joinCode, setJoinCode] = useState("");
+/** Shared full-bleed backdrop for the pre-meeting screens. */
+function Stage({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen w-full bg-canvas flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="aurora aurora-iris w-[680px] h-[680px] -top-52 left-1/2 -translate-x-1/2 opacity-[0.16] animate-drift" />
+        <div
+          className="absolute inset-0 grid-field opacity-40"
+          style={{ maskImage: 'radial-gradient(ellipse 60% 60% at 50% 40%, #000 20%, transparent 76%)' }}
+        />
+      </div>
+      <div className="relative z-10 w-full flex justify-center">{children}</div>
+    </div>
+  );
+}
+
+/* ========================================================================== */
+
+export function JoinMeetingView({
+  onJoin,
+  onBack,
+}: {
+  onJoin: (meeting: Meeting) => void;
+  onBack: () => void;
+}) {
+  const [joinCode, setJoinCode] = useState('');
   const { joinMeeting, isLoading, error } = useMeetingStore();
 
   const handleJoin = async () => {
@@ -16,147 +42,163 @@ export function JoinMeetingView({ onJoin, onBack }: { onJoin: (meeting: any) => 
       const meeting = await joinMeeting(joinCode.trim());
       onJoin(meeting);
     } catch (e) {
-      console.error("Failed to join meeting", e);
+      console.error('Failed to join meeting', e);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center p-6 relative">
-      <div className="absolute top-8 left-8">
-        <Button variant="ghost" onClick={onBack} className="text-stone-500">
-          &larr; Back to Dashboard
+    <Stage>
+      <div className="absolute top-0 left-0">
+        <Button variant="ghost" onClick={onBack} leading={<ArrowLeft className="w-4 h-4" />}>
+          Back
         </Button>
       </div>
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-      <Card className="w-full max-w-[480px] p-8 relative z-10 shadow-[0_20px_60px_rgb(28,25,23,0.08)]">
-        <div className="flex items-center gap-2 text-emerald-600 font-semibold text-xl tracking-tight justify-center mb-8">
-          <div className="w-7 h-7 rounded bg-gradient-to-br from-[#34d399] to-[#059669] flex items-center justify-center">
-            <Video className="w-4 h-4 text-white" />
-          </div>
-          Vaarta
-        </div>
-        
-        <h2 className="text-[24px] font-semibold text-stone-900 tracking-tight text-center mb-2">Join a meeting</h2>
-        <p className="text-[14px] text-stone-500 text-center mb-8">Enter the meeting code or link to join</p>
 
-        <div className="space-y-5 mb-8">
-          <div>
-            <Input 
-              placeholder="e.g. 123-456-789" 
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              className="h-14 text-center font-mono text-[18px] tracking-[0.2em]" 
-            />
-          </div>
-          <div>
-            <Input placeholder="Your display name" defaultValue="Sarah Jenkins" className="h-12" />
-          </div>
-          <div className="flex items-center justify-between px-3 py-3 border border-stone-200 rounded-[6px] hover:border-stone-300 transition-colors cursor-pointer bg-white">
-            <div className="flex items-center gap-2 text-stone-600 text-[14px]">
-              <Globe className="w-4 h-4" /> English (US)
-            </div>
-            <ChevronDown className="w-4 h-4 text-stone-400" />
-          </div>
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      <Card elevation={3} className="w-full max-w-[440px] p-8">
+        <div className="flex justify-center mb-7">
+          <Logo size="md" />
         </div>
 
-        <Button 
-          className="w-full h-12 text-[15px]" 
+        <h2 className="t-h2 text-ink text-center mb-1.5">Join a meeting</h2>
+        <p className="t-small text-ink-3 text-center mb-7">Enter the code you were given.</p>
+
+        <Input
+          placeholder="ABC-123-XYZ"
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+          className="h-14 text-center font-mono text-[19px] tracking-[0.18em] uppercase"
+          autoFocus
+          aria-label="Meeting code"
+        />
+
+        {error && (
+          <p className="mt-3 px-3 py-2.5 rounded-lg bg-danger-soft border border-danger-line text-danger-ink t-small text-center">
+            {error}
+          </p>
+        )}
+
+        <Button
+          size="lg"
+          className="w-full mt-6"
           onClick={handleJoin}
-          disabled={isLoading || !joinCode.trim()}
+          loading={isLoading}
+          disabled={!joinCode.trim()}
         >
-          {isLoading ? "Joining..." : "Join Meeting"}
+          Continue
         </Button>
       </Card>
-    </div>
+    </Stage>
   );
 }
 
-export function PreCallDeviceCheckView({ onJoinNow, onBack }: { onJoinNow: () => void, onBack?: () => void }) {
+/* ========================================================================== */
+
+export function PreCallDeviceCheckView({
+  onJoinNow,
+  onBack,
+}: {
+  onJoinNow: () => void;
+  onBack?: () => void;
+}) {
   return (
-    <div className="min-h-screen bg-[#14120F] flex items-center justify-center p-6 relative">
+    <Stage>
       {onBack && (
-        <div className="absolute top-8 left-8">
-          <Button variant="ghost" onClick={onBack} className="text-stone-400 hover:text-white hover:bg-stone-800">
-            &larr; Back
+        <div className="absolute top-0 left-0">
+          <Button variant="ghost" onClick={onBack} leading={<ArrowLeft className="w-4 h-4" />}>
+            Back
           </Button>
         </div>
       )}
-      <div className="w-full max-w-5xl bg-[#1A1712] border border-stone-800/80 rounded-[16px] p-8 shadow-2xl">
-        <h2 className="text-[24px] font-semibold text-white mb-8 tracking-tight text-center">Ready to join?</h2>
-        
-        <div className="max-w-3xl mx-auto">
-          {/* We reuse the actual DeviceTester logic so the user can test their devices fully before joining */}
-          <div className="bg-white rounded-xl p-6 mb-8">
-             <DeviceTester />
+
+      <Card elevation={3} className="w-full max-w-3xl p-8">
+        <div className="text-center mb-7">
+          <h2 className="t-h2 text-ink mb-1.5">Ready to join?</h2>
+          <p className="t-small text-ink-3">
+            Check your camera and microphone before anyone sees you.
+          </p>
+        </div>
+
+        <DeviceTester />
+
+        <Button size="lg" className="w-full mt-8" onClick={onJoinNow}>
+          Join meeting
+        </Button>
+      </Card>
+    </Stage>
+  );
+}
+
+/* ========================================================================== */
+
+export function WaitingRoomGuestView({
+  meeting,
+  onLeave,
+}: {
+  meeting?: Meeting;
+  onLeave: () => void;
+}) {
+  return (
+    <Stage>
+      <div className="max-w-md w-full text-center">
+        <div className="relative w-20 h-20 mx-auto mb-7">
+          <div className="absolute inset-0 rounded-full bg-iris-soft animate-breathe" />
+          <div className="absolute inset-3 rounded-full bg-iris-soft border border-iris-line flex items-center justify-center text-iris">
+            <Radio className="w-6 h-6" />
           </div>
-          <Button className="w-full h-14 text-[16px] bg-emerald-600 hover:bg-emerald-700 text-white font-medium" onClick={onJoinNow}>
-            Join Meeting Now
+        </div>
+
+        <h2 className="t-h2 text-ink mb-2">Waiting for the host</h2>
+        <p className="t-body text-ink-2 leading-relaxed mb-8">
+          You're in the queue for{' '}
+          <span className="text-ink font-medium">{meeting?.title || 'the meeting'}</span>. You'll be
+          let in shortly.
+        </p>
+
+        <div className="flex justify-center gap-3">
+          <Button variant="outline" onClick={onLeave}>
+            Leave
+          </Button>
+          <Button onClick={() => window.dispatchEvent(new CustomEvent('admit-guest'))}>
+            Enter meeting
           </Button>
         </div>
       </div>
-    </div>
+    </Stage>
   );
 }
 
-export function WaitingRoomGuestView({ meeting, onLeave }: { meeting?: any, onLeave: () => void }) {
-  return (
-    <div className="min-h-screen bg-[#faf9f7] flex items-center justify-center p-6 text-center">
-      <div className="max-w-md w-full">
-        <div className="relative w-24 h-24 mx-auto mb-8">
-          <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping"></div>
-          <div className="absolute inset-2 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
-            <Video className="w-8 h-8" />
-          </div>
-        </div>
-        <h2 className="text-[24px] font-semibold text-stone-900 tracking-tight mb-2">Waiting for the host</h2>
-        <p className="text-[15px] text-stone-500 leading-relaxed mb-8">
-          You have joined <strong>{meeting?.title || "the meeting"}</strong>.<br />
-          The host will let you in shortly.
-        </p>
-        <div className="flex justify-center gap-4">
-          <Button variant="outline" onClick={onLeave}>Leave Meeting</Button>
-          {/* For prototype purposes, let the guest join directly */}
-          <Button onClick={() => window.dispatchEvent(new CustomEvent('admit-guest'))}>Enter (Demo)</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ========================================================================== */
 
+/**
+ * Host-side waiting room.
+ *
+ * There is no waiting-room API yet, so this renders a genuine empty state
+ * rather than the hardcoded list of invented participants it used to show.
+ */
 export function WaitingRoomHostView({ onAdmitAll }: { onAdmitAll: () => void }) {
+  const waiting: { id: string; name: string; email?: string }[] = [];
+
   return (
     <div className="p-8 max-w-4xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Waiting Room</h1>
-          <p className="text-[15px] text-stone-500">3 people are waiting to join</p>
+          <h1 className="t-h1 text-ink mb-1.5">Waiting room</h1>
+          <p className="t-body text-ink-3">
+            {waiting.length === 0
+              ? 'Nobody is waiting right now.'
+              : `${waiting.length} waiting to join.`}
+          </p>
         </div>
-        <Button onClick={onAdmitAll}>Admit All</Button>
+        {waiting.length > 0 && <Button onClick={onAdmitAll}>Admit all</Button>}
       </div>
 
       <Card className="overflow-hidden">
-        <div className="divide-y divide-stone-100">
-          {[
-            { name: "Michael Chen", role: "Engineering", img: "https://i.pravatar.cc/150?u=1" },
-            { name: "Emma Watson", role: "Design", img: "https://i.pravatar.cc/150?u=2" },
-            { name: "David Kim", role: "Marketing", img: "https://i.pravatar.cc/150?u=3" }
-          ].map((person, i) => (
-            <div key={i} className="p-4 flex items-center justify-between hover:bg-stone-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <img src={person.img} alt={person.name} className="w-10 h-10 rounded-full" />
-                <div>
-                  <p className="text-[15px] font-medium text-stone-900">{person.name}</p>
-                  <p className="text-[13px] text-stone-500">{person.role}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50">Decline</Button>
-                <Button variant="secondary">Admit</Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <EmptyState
+          icon={<Users className="w-5 h-5" />}
+          title="No one waiting"
+          description="Guests who open your meeting link will appear here for you to admit."
+        />
       </Card>
     </div>
   );

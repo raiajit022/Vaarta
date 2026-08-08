@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Button } from "../ui/Button";
+import { Button } from "../../../../ui/Button";
+import { Select, Field } from "../../../../ui/Input";
 import { Video, Mic, Volume2 } from "lucide-react";
 
 export function DeviceTester() {
@@ -208,54 +209,48 @@ export function DeviceTester() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Camera</label>
-          <select 
-            className="w-full h-10 px-3 rounded-[6px] border border-stone-200 bg-white text-[14px] text-stone-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-            value={selectedVideoId} 
-            onChange={e => setSelectedVideoId(e.target.value)}
-          >
+        <Field label="Camera" htmlFor="dt-camera">
+          <Select id="dt-camera" value={selectedVideoId} onChange={e => setSelectedVideoId(e.target.value)}>
             {devices.filter(d => d.kind === 'videoinput').map(d => (
               <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${d.deviceId.substring(0, 5)}`}</option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Microphone</label>
-          <select 
-            className="w-full h-10 px-3 rounded-[6px] border border-stone-200 bg-white text-[14px] text-stone-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-            value={selectedAudioId} 
-            onChange={e => setSelectedAudioId(e.target.value)}
-          >
+          </Select>
+        </Field>
+        <Field label="Microphone" htmlFor="dt-mic">
+          <Select id="dt-mic" value={selectedAudioId} onChange={e => setSelectedAudioId(e.target.value)}>
             {devices.filter(d => d.kind === 'audioinput').map(d => (
               <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${d.deviceId.substring(0, 5)}`}</option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
 
       {!isTesting ? (
-        <div className="text-center py-10 bg-stone-50 border border-stone-200 rounded-[8px]">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-            <Video className="w-6 h-6 text-emerald-600" />
+        <div className="text-center py-10 px-6 bg-surface-inset border border-line rounded-xl">
+          <div className="w-12 h-12 rounded-xl bg-iris-soft border border-iris-line flex items-center justify-center mx-auto mb-4 text-iris">
+            <Video className="w-5 h-5" />
           </div>
-          <p className="text-[14px] text-stone-600 mb-1 font-medium">Test your devices</p>
-          <p className="text-[13px] text-stone-500 mb-4">Check your camera, microphone, and speakers before a call.</p>
-          <Button onClick={startTest}>Start Test</Button>
-          {error && <p className="text-red-500 text-[13px] mt-4">{error}</p>}
+          <p className="t-h3 text-ink mb-1">Test your devices</p>
+          <p className="t-small text-ink-3 mb-5">Check your camera, microphone and speakers.</p>
+          <Button onClick={startTest}>Start test</Button>
+          {error && (
+            <p className="mt-4 mx-auto max-w-sm px-3 py-2.5 rounded-lg bg-danger-soft border border-danger-line text-danger-ink t-small">
+              {error}
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
           {/* Camera Preview */}
           <div>
-            <div className="flex justify-between items-center mb-1.5">
+            <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
-                <Video className="w-4 h-4 text-stone-500" />
-                <label className="block text-[13px] font-medium text-stone-700">Camera Preview</label>
+                <Video className="w-4 h-4 text-ink-3" />
+                <span className="t-small font-medium text-ink-2">Camera preview</span>
               </div>
-              <Button variant="ghost" className="h-7 text-xs text-red-600 hover:bg-red-50" onClick={stopTest}>Stop Test</Button>
+              <Button variant="dangerGhost" size="sm" onClick={stopTest}>Stop test</Button>
             </div>
-            <div className="mt-2 aspect-video bg-stone-900 rounded-[8px] overflow-hidden flex items-center justify-center relative">
+            <div className="aspect-video bg-canvas border border-line rounded-xl overflow-hidden flex items-center justify-center relative">
               <video
                 ref={videoRef}
                 autoPlay
@@ -268,13 +263,13 @@ export function DeviceTester() {
           </div>
 
           {/* Microphone Level */}
-          <div className="pt-4 border-t border-stone-100">
+          <div className="pt-5 border-t border-line">
             <div className="flex items-center gap-2 mb-3">
-              <Mic className="w-4 h-4 text-stone-500" />
-              <label className="block text-[13px] font-medium text-stone-700">Microphone</label>
+              <Mic className="w-4 h-4 text-ink-3" />
+              <span className="t-small font-medium text-ink-2">Microphone</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] text-stone-500 w-12">Level</span>
+            <div className="flex items-center gap-3">
+              <span className="t-caption text-ink-3 w-10">Level</span>
               <div className="flex-1 flex gap-1 h-3">
                 {[...Array(15)].map((_, i) => {
                   const isActive = volume > (i * 5);
@@ -282,34 +277,34 @@ export function DeviceTester() {
                     <div
                       key={i}
                       className={`h-full flex-1 rounded-full transition-colors duration-100 ${isActive
-                        ? (i > 11 ? 'bg-red-500' : i > 8 ? 'bg-yellow-500' : 'bg-emerald-500')
-                        : 'bg-stone-200'
+                        ? (i > 11 ? 'bg-danger' : i > 8 ? 'bg-saffron' : 'bg-live')
+                        : 'bg-surface-inset'
                         }`}
                     ></div>
                   );
                 })}
               </div>
             </div>
-            <p className="text-[12px] text-stone-500 mt-2">Speak into your microphone — the bars should respond to your voice.</p>
+            <p className="t-caption text-ink-3 mt-2.5">Speak — the bars should follow your voice.</p>
           </div>
 
           {/* Speaker Test */}
-          <div className="pt-4 border-t border-stone-100">
+          <div className="pt-5 border-t border-line">
             <div className="flex items-center gap-2 mb-3">
-              <Volume2 className="w-4 h-4 text-stone-500" />
-              <label className="block text-[13px] font-medium text-stone-700">Speakers</label>
+              <Volume2 className="w-4 h-4 text-ink-3" />
+              <span className="t-small font-medium text-ink-2">Speakers</span>
             </div>
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                className="text-xs"
+                size="sm"
                 onClick={speakerTestPlaying ? stopSpeakerTest : playSpeakerTest}
                 disabled={speakerTestPlaying}
               >
-                {speakerTestPlaying ? "Playing..." : "Play Test Sound"}
+                {speakerTestPlaying ? "Playing…" : "Play test tone"}
               </Button>
-              <p className="text-[12px] text-stone-500">
-                {speakerTestPlaying ? "You should hear a tone from your speakers." : "Click to play a test tone through your speakers."}
+              <p className="t-caption text-ink-3">
+                {speakerTestPlaying ? "You should hear a tone." : "Plays a short A4 tone."}
               </p>
             </div>
           </div>

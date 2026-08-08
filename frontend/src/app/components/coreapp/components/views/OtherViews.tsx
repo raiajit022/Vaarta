@@ -1,168 +1,229 @@
-import React, { useState, useEffect } from "react";
-import { Card } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Calendar, Video, Clock, Users, Search, Play, Phone, Mail, Settings, User, Bell, Shield, Copy, Plus, X } from "lucide-react";
-import { useAuthStore } from "../../../../store/useAuthStore";
-import { useMeetingStore } from "../../../../store/useMeetingStore";
-import { DeviceTester } from "./DeviceTester";
-import { userClient } from "../../../../apiClient";
+import React, { useState, useEffect } from 'react';
+import {
+  Calendar, Video, Clock, Search, Mail, User, Bell, Shield, Plus, X, Trash2,
+  Radio, KeyRound, Link2, Users, MonitorSmartphone,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Card } from '../../../../ui/Card';
+import { Button } from '../../../../ui/Button';
+import { Input, Field } from '../../../../ui/Input';
+import { Badge } from '../../../../ui/Badge';
+import { Avatar } from '../../../../ui/Avatar';
+import { Tabs } from '../../../../ui/Tabs';
+import { Modal } from '../../../../ui/Modal';
+import { Switch } from '../../../../ui/Switch';
+import { Spinner } from '../../../../ui/Spinner';
+import { EmptyState } from '../../../../ui/EmptyState';
+import { confirm } from '../../../../ui/confirm';
+import { copyToClipboard } from '../../../../ui/clipboard';
+import { cn } from '../../../../ui/cn';
+import { useAuthStore } from '../../../../store/useAuthStore';
+import { useMeetingStore, type Meeting } from '../../../../store/useMeetingStore';
+import { formatDateTime, formatDate, isPastMeeting } from '../../../../utils/datetime';
+import { DeviceTester } from './DeviceTester';
+import { MeetingDetailsModal } from './Modals';
+import { userClient, authClient } from '../../../../apiClient';
 
-/**
- * Displays a list of upcoming and past meetings.
- * Allows the user to view meeting details, copy join links, and join active meetings.
- *
- * @param props.onScheduleMeeting Callback to open the 'Schedule Meeting' modal.
- */
-export function MeetingsView({ onScheduleMeeting }: { onScheduleMeeting: () => void }) {
-  const [activeTab, setActiveTab] = useState("upcoming");
+const joinUrl = (code: string) => `${window.location.origin}/join/${code}`;
+
+/* ========================================================================== */
+/*  Meetings                                                                  */
+/* ========================================================================== */
+
+export function MeetingsView({
+  onScheduleMeeting,
+  onJoinDirectly,
+}: {
+  onScheduleMeeting: () => void;
+  onJoinDirectly?: (meeting: Meeting) => void;
+}) {
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [selected, setSelected] = useState<Meeting | null>(null);
   const { meetings, fetchMyMeetings, deleteMeeting, isLoading } = useMeetingStore();
 
   useEffect(() => {
     fetchMyMeetings();
   }, [fetchMyMeetings]);
 
-  const parseDate = (d: any) => {
-    if (!d) return 0;
-    if (Array.isArray(d)) {
-      return new Date(d[0], (d[1] || 1) - 1, d[2] || 1, d[3] || 0, d[4] || 0, d[5] || 0).getTime();
-    }
-    return new Date(d).getTime();
-  };
+  const upcoming = meetings.filter((m) => !isPastMeeting(m));
+  const past = meetings.filter((m) => isPastMeeting(m));
+  const rows = activeTab === 'upcoming' ? upcoming : past;
 
-  const isPast = (m: any) => {
-    if (m.status === 'ENDED' || m.status === 'CANCELLED') return true;
+  const handleDelete = async (m: Meeting) => {
+    const ok = await confirm({
+      title: activeTab === 'upcoming' ? 'Cancel this meeting?' : 'Remove from history?',
+      description:
+        activeTab === 'upcoming'
+          ? `"${m.title}" will be cancelled and its join code will stop working.`
+          : `"${m.title}" will be removed from your list. This cannot be undone.`,
+      confirmLabel: activeTab === 'upcoming' ? 'Cancel meeting' : 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
 
-    if (!m.scheduledStart) {
-      // Instant meeting: past if older than 1 hour
-      if (m.createdAt) {
-        const createdDate = parseDate(m.createdAt);
-        const now = Date.now();
-        if (!isNaN(createdDate) && (now - createdDate) / (1000 * 60 * 60) > 1) return true;
-      }
-    } else {
-      // Scheduled meeting: past if it started more than 1 hour ago
-      const scheduledDate = parseDate(m.scheduledStart);
-      const now = Date.now();
-      if (!isNaN(scheduledDate) && (now - scheduledDate) / (1000 * 60 * 60) > 1) return true;
-    }
-    return false;
-  };
-
-  const formatMeetingDate = (d: any) => {
-    const timestamp = parseDate(d);
-    if (!timestamp || isNaN(timestamp)) return 'Invalid Date';
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const upcomingMeetings = meetings.filter(m => !isPast(m));
-  const pastMeetings = meetings.filter(m => isPast(m));
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this meeting?")) {
-      await deleteMeeting(id);
+    try {
+      await deleteMeeting(m.id);
+      toast.success(activeTab === 'upcoming' ? 'Meeting cancelled' : 'Meeting removed');
+    } catch {
+      toast.error('Could not remove the meeting. Please try again.');
     }
   };
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Meetings</h1>
-          <p className="text-[15px] text-stone-500">Manage your schedule and upcoming calls.</p>
+          <h1 className="t-h1 text-ink mb-1.5">Meetings</h1>
+          <p className="t-body text-ink-3">Everything scheduled, and everything that already happened.</p>
         </div>
-        <Button onClick={onScheduleMeeting}>Schedule Meeting</Button>
+        <Button onClick={onScheduleMeeting} leading={<Plus className="w-4 h-4" />}>
+          Schedule
+        </Button>
       </div>
 
-      <div className="mb-6 flex gap-4 border-b border-stone-200">
-        <button
-          onClick={() => setActiveTab("upcoming")}
-          className={`px-4 py-2 text-[14px] font-medium transition-colors ${activeTab === "upcoming" ? "text-emerald-600 border-b-2 border-emerald-600" : "text-stone-500 hover:text-stone-900"}`}
-        >
-          Upcoming
-        </button>
-        <button
-          onClick={() => setActiveTab("past")}
-          className={`px-4 py-2 text-[14px] font-medium transition-colors ${activeTab === "past" ? "text-emerald-600 border-b-2 border-emerald-600" : "text-stone-500 hover:text-stone-900"}`}
-        >
-          Past
-        </button>
-      </div>
+      <Tabs
+        className="mb-5"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'upcoming', label: 'Upcoming', count: upcoming.length },
+          { id: 'past', label: 'Past', count: past.length },
+        ]}
+      />
 
-      <div className="space-y-4">
-        {isLoading && <p className="text-stone-500">Loading...</p>}
-        {activeTab === "upcoming" && (
-          <>
-            {!isLoading && upcomingMeetings.length === 0 && <p className="text-stone-500">No upcoming meetings.</p>}
-            {upcomingMeetings.map((meeting) => (
-              <Card key={meeting.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group">
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-full ${meeting.status === 'LIVE' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} flex items-center justify-center shrink-0`}>
-                    <Calendar className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-[16px] font-semibold text-stone-900 mb-1">{meeting.title}</h3>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-stone-500">
-                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.scheduledStart ? formatMeetingDate(meeting.scheduledStart) : 'Instant Meeting'}</span>
-                      <span className="flex items-center gap-1.5 font-mono text-stone-700">{meeting.joinCode}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                  <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(meeting.id)}>
-                    <X className="w-4 h-4 mr-1" /> Cancel
-                  </Button>
-                  <Button variant="outline" className="flex-1 md:flex-none">Copy Link</Button>
-                  <Button className="flex-1 md:flex-none">Join Now</Button>
-                </div>
-              </Card>
-            ))}
-          </>
+      <div className="space-y-2.5">
+        {isLoading && rows.length === 0 && (
+          <Card className="p-10 flex justify-center text-ink-3">
+            <Spinner size={18} />
+          </Card>
         )}
 
-        {activeTab === "past" && (
-          <>
-            {!isLoading && pastMeetings.length === 0 && <p className="text-stone-500">No past meetings.</p>}
-            {pastMeetings.map((meeting) => (
-              <Card key={meeting.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 group opacity-70 hover:opacity-100 transition-opacity">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center shrink-0">
-                    <Video className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-[16px] font-semibold text-stone-900 mb-1">{meeting.title}</h3>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-stone-500">
-                      <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {meeting.endedAt ? new Date(parseDate(meeting.endedAt)).toLocaleDateString() : 'Ended'}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                  <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(meeting.id)}>
-                    <X className="w-4 h-4 mr-1" /> Clear
+        {!isLoading && rows.length === 0 && (
+          <Card>
+            <EmptyState
+              icon={activeTab === 'upcoming' ? <Calendar className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+              title={activeTab === 'upcoming' ? 'Nothing scheduled' : 'No past meetings'}
+              description={
+                activeTab === 'upcoming'
+                  ? 'Schedule a meeting and invite people by email.'
+                  : 'Once you finish a call it will appear here with its recap.'
+              }
+              action={
+                activeTab === 'upcoming' ? (
+                  <Button size="sm" onClick={onScheduleMeeting}>
+                    Schedule a meeting
                   </Button>
-                  <Button variant="secondary" className="flex-1 md:flex-none">View Details</Button>
-                </div>
-              </Card>
-            ))}
-          </>
+                ) : undefined
+              }
+            />
+          </Card>
         )}
+
+        {rows.map((m) => {
+          const isLive = m.status === 'LIVE';
+          const isUpcoming = activeTab === 'upcoming';
+          return (
+            <Card key={m.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-4 min-w-0">
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-lg border flex items-center justify-center shrink-0',
+                    isLive
+                      ? 'bg-live-soft border-live-line text-live-ink'
+                      : 'bg-surface-inset border-line text-ink-3'
+                  )}
+                >
+                  {isLive ? (
+                    <Radio className="w-[18px] h-[18px]" />
+                  ) : isUpcoming ? (
+                    <Calendar className="w-[18px] h-[18px]" />
+                  ) : (
+                    <Video className="w-[18px] h-[18px]" />
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="t-h3 text-ink truncate">{m.title}</h3>
+                    {isLive && <Badge tone="live" pulse>Live</Badge>}
+                    {m.status === 'CANCELLED' && <Badge tone="danger">Cancelled</Badge>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1.5">
+                    <span className="flex items-center gap-1.5 t-caption text-ink-3">
+                      <Clock className="w-3.5 h-3.5" />
+                      {isUpcoming
+                        ? m.scheduledStart
+                          ? formatDateTime(m.scheduledStart)
+                          : 'Instant meeting'
+                        : formatDate(m.endedAt || m.scheduledStart || m.createdAt, 'Ended')}
+                    </span>
+                    {isUpcoming && (
+                      <button
+                        onClick={() => copyToClipboard(m.joinCode, 'Meeting code copied')}
+                        className="font-mono t-caption text-ink-2 px-1.5 py-0.5 rounded bg-surface-inset border border-line hover:border-line-hover hover:text-ink transition-colors"
+                        title="Copy meeting code"
+                      >
+                        {m.joinCode}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  onClick={() => handleDelete(m)}
+                  aria-label={isUpcoming ? 'Cancel meeting' : 'Remove from history'}
+                  className="text-ink-3 hover:text-danger-ink hover:bg-danger-soft"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+                {isUpcoming ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(joinUrl(m.joinCode), 'Invite link copied')}
+                      leading={<Link2 className="w-3.5 h-3.5" />}
+                    >
+                      Copy link
+                    </Button>
+                    <Button size="sm" onClick={() => onJoinDirectly?.(m)}>
+                      Join
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" size="sm" onClick={() => setSelected(m)}>
+                    View recap
+                  </Button>
+                )}
+              </div>
+            </Card>
+          );
+        })}
       </div>
+
+      {selected && <MeetingDetailsModal meeting={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
 
-/**
- * Displays a directory of user contacts.
- */
+/* ========================================================================== */
+/*  Contacts                                                                  */
+/* ========================================================================== */
+
 export function ContactsView() {
-  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [query, setQuery] = useState('');
 
-  // Form state
-  const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
 
   const fetchContacts = async () => {
     try {
@@ -170,7 +231,8 @@ export function ContactsView() {
       const res = await userClient.get('/api/users/contacts');
       setContacts(res.data);
     } catch (e) {
-      console.error("Failed to fetch contacts", e);
+      console.error('Failed to fetch contacts', e);
+      toast.error('Could not load contacts.');
     } finally {
       setIsLoading(false);
     }
@@ -180,148 +242,272 @@ export function ContactsView() {
     fetchContacts();
   }, []);
 
-  const handleAddContact = async () => {
+  const handleAdd = async () => {
     if (!email.trim()) return;
     try {
-      const name = `${firstName} ${lastName}`.trim();
-      await userClient.post('/api/users/contacts', { email, name });
-      setIsAddContactModalOpen(false);
-      setEmail("");
-      setFirstName("");
-      setLastName("");
+      setIsSaving(true);
+      await userClient.post('/api/users/contacts', {
+        email,
+        name: `${firstName} ${lastName}`.trim(),
+      });
+      setIsAddOpen(false);
+      setEmail('');
+      setFirstName('');
+      setLastName('');
+      toast.success('Contact added');
       fetchContacts();
-    } catch (e) {
-      console.error("Failed to add contact", e);
+    } catch (e: any) {
+      console.error('Failed to add contact', e);
+      toast.error(e?.response?.data?.message || 'Could not add that contact.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDeleteContact = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this contact?")) return;
+  const handleDelete = async (contact: any) => {
+    const ok = await confirm({
+      title: 'Remove contact?',
+      description: `${contact.contactName || contact.contactEmail} will be removed from your directory.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
+
     try {
-      await userClient.delete(`/api/users/contacts/${id}`);
+      await userClient.delete(`/api/users/contacts/${contact.id}`);
+      toast.success('Contact removed');
       fetchContacts();
     } catch (e) {
-      console.error("Failed to delete contact", e);
+      console.error('Failed to delete contact', e);
+      toast.error('Could not remove that contact.');
     }
   };
+
+  const filtered = contacts.filter((c) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (c.contactName || '').toLowerCase().includes(q) ||
+      (c.contactEmail || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full relative">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-8 max-w-6xl mx-auto w-full">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-1">Contacts</h1>
-          <p className="text-[15px] text-stone-500">Your directory and frequent collaborators.</p>
+          <h1 className="t-h1 text-ink mb-1.5">Contacts</h1>
+          <p className="t-body text-ink-3">People you meet with often.</p>
         </div>
-        <Button onClick={() => setIsAddContactModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Add Contact
+        <Button onClick={() => setIsAddOpen(true)} leading={<Plus className="w-4 h-4" />}>
+          Add contact
         </Button>
       </div>
 
       <Card className="overflow-hidden">
-        <div className="p-4 border-b border-stone-100 bg-stone-50/50">
-          <Input icon={<Search className="w-4 h-4" />} placeholder="Search by name, email, or role..." className="max-w-md" />
+        <div className="p-3 border-b border-line bg-canvas-raised">
+          <Input
+            icon={<Search className="w-4 h-4" />}
+            placeholder="Search by name or email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="max-w-sm"
+          />
         </div>
-        <div className="divide-y divide-stone-100">
-          {isLoading && <div className="p-4 text-stone-500">Loading contacts...</div>}
-          {!isLoading && contacts.length === 0 && <div className="p-4 text-stone-500">No contacts added yet.</div>}
-          {contacts.map((contact, i) => (
-            <div key={i} className="p-4 flex items-center justify-between hover:bg-stone-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-medium">
-                  {contact.contactName ? contact.contactName.charAt(0).toUpperCase() : contact.contactEmail.charAt(0).toUpperCase()}
+
+        {isLoading ? (
+          <div className="p-10 flex justify-center text-ink-3">
+            <Spinner size={18} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={<Users className="w-5 h-5" />}
+            title={query ? 'No matches' : 'No contacts yet'}
+            description={
+              query
+                ? 'Try a different name or email address.'
+                : 'Add the people you meet with most so inviting them takes one click.'
+            }
+            action={
+              !query ? (
+                <Button size="sm" onClick={() => setIsAddOpen(true)}>
+                  Add your first contact
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="divide-y divide-[var(--line)]">
+            {filtered.map((contact) => (
+              <div
+                key={contact.id}
+                className="p-4 flex items-center justify-between gap-4 hover:bg-surface-hover transition-colors group"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <Avatar name={contact.contactName} email={contact.contactEmail} />
+                  <div className="min-w-0">
+                    <p className="t-small font-medium text-ink truncate">
+                      {contact.contactName || contact.contactEmail}
+                    </p>
+                    <p className="t-caption text-ink-3 truncate">{contact.contactEmail}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[15px] font-medium text-stone-900">{contact.contactName}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-8">
-                <span className="text-[14px] text-stone-500 hidden md:block w-48 truncate">{contact.contactEmail}</span>
-                <div className="flex items-center gap-2">
-                  <button className="w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 shadow-sm flex items-center justify-center transition-colors">
+
+                <div className="flex items-center gap-1.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
+                    aria-label={`Email ${contact.contactEmail}`}
+                    onClick={() => window.open(`mailto:${contact.contactEmail}`)}
+                  >
                     <Mail className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteContact(contact.id)}
-                    className="w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 shadow-sm flex items-center justify-center transition-colors"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="iconSm"
+                    aria-label="Remove contact"
+                    onClick={() => handleDelete(contact)}
+                    className="text-ink-3 hover:text-danger-ink hover:bg-danger-soft"
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
 
-      {/* Add Contact Modal */}
-      {isAddContactModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => setIsAddContactModalOpen(false)}></div>
-          <Card className="relative w-full max-w-md shadow-[0_20px_60px_rgb(0,0,0,0.12)]">
-            <div className="flex items-center justify-between p-6 border-b border-stone-100">
-              <h2 className="text-[18px] font-semibold text-stone-900 tracking-tight">Add Contact</h2>
-              <button onClick={() => setIsAddContactModalOpen(false)} className="text-stone-400 hover:text-stone-600 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
+      {isAddOpen && (
+        <Modal
+          onClose={() => setIsAddOpen(false)}
+          title="Add contact"
+          description="They'll show up when you invite people to a meeting."
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setIsAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAdd} loading={isSaving} disabled={!email.trim()}>
+                Add contact
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Field label="Email address" htmlFor="contact-email">
+              <Input
+                id="contact-email"
+                type="email"
+                placeholder="jane@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="First name" htmlFor="contact-first">
+                <Input
+                  id="contact-first"
+                  placeholder="Jane"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </Field>
+              <Field label="Last name" htmlFor="contact-last">
+                <Input
+                  id="contact-last"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </Field>
             </div>
-            <div className="p-6 space-y-5">
-              <div>
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Email Address</label>
-                <Input placeholder="e.g. jane@vaarta.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">First Name</label>
-                  <Input placeholder="Jane" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Last Name</label>
-                  <Input placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                </div>
-              </div>
-            </div>
-            <div className="p-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-3 rounded-b-[16px]">
-              <Button variant="ghost" onClick={() => setIsAddContactModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddContact}>Add Contact</Button>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
 }
 
-/**
- * Renders the user settings page, allowing profile updates, 
- * audio/video configuration, notification preferences, and security settings.
- */
+/* ========================================================================== */
+/*  Settings                                                                  */
+/* ========================================================================== */
+
+const NOTIFICATION_PREFS = [
+  { id: 'reminders', title: 'Meeting reminders', desc: 'Ping me 10 minutes before a meeting starts' },
+  { id: 'chat', title: 'Chat messages', desc: 'Notify me about direct messages' },
+  { id: 'recaps', title: 'Meeting recaps', desc: 'Tell me when a summary is ready' },
+  { id: 'digest', title: 'Email digest', desc: 'Send a daily summary by email' },
+] as const;
+
+const PREFS_KEY = 'vaarta:notification-prefs';
+
+function SettingsRow({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-6 py-3.5 border-b border-line last:border-0">
+      <div className="min-w-0">
+        <p className="t-small font-medium text-ink">{title}</p>
+        <p className="t-caption text-ink-3 mt-0.5">{desc}</p>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
 export function SettingsView() {
   const { user, fetchProfile } = useAuthStore();
-  const [activeTab, setActiveTab] = React.useState("profile");
-  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(user?.avatarUrl || null);
-  const [firstName, setFirstName] = React.useState(user?.fullName?.split(' ')[0] || '');
-  const [lastName, setLastName] = React.useState(user?.fullName?.split(' ').slice(1).join(' ') || '');
-  const [organization, setOrganization] = React.useState(user?.organization || '');
-  const [timezone, setTimezone] = React.useState(user?.timezone || 'Asia/Kolkata');
-  const [isSaving, setIsSaving] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState('profile');
 
-  const handleChangePhoto = () => {
-    // We will just prompt for a URL for now to simplify
-    const url = window.prompt("Enter image URL for your avatar:", avatarUrl || "");
-    if (url) {
-      setAvatarUrl(url);
-    }
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl || null);
+  const [firstName, setFirstName] = useState(user?.fullName?.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(user?.fullName?.split(' ').slice(1).join(' ') || '');
+  const [organization, setOrganization] = useState(user?.organization || '');
+  const [timezone, setTimezone] = useState(
+    user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
+  const [photoDraft, setPhotoDraft] = useState('');
+
+  const openPhotoDialog = () => {
+    setPhotoDraft(avatarUrl || '');
+    setIsPhotoOpen(true);
   };
 
-  const handleRemovePhoto = () => {
-    setAvatarUrl(null);
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(PREFS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {
+      /* ignore malformed storage */
+    }
+    return Object.fromEntries(NOTIFICATION_PREFS.map((p) => [p.id, true]));
+  });
+
+  const setPref = (id: string, value: boolean) => {
+    const next = { ...prefs, [id]: value };
+    setPrefs(next);
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+    } catch {
+      /* storage unavailable — preference simply won't persist */
+    }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { userClient } = await import('../../../../apiClient');
       await userClient.put('/api/users/me', {
         displayName: `${firstName} ${lastName}`.trim(),
         avatarUrl,
@@ -329,136 +515,179 @@ export function SettingsView() {
         timezone,
       });
       await fetchProfile();
-      alert("Profile updated successfully!");
+      toast.success('Profile updated');
     } catch (error) {
       console.error(error);
-      alert("Failed to update profile.");
+      toast.error('Could not save your profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const renderTabContent = () => {
+  /**
+   * There is no authenticated change-password endpoint, so the honest path is
+   * the existing reset-by-email flow rather than a form that goes nowhere.
+   */
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
+    setIsSendingReset(true);
+    try {
+      await authClient.post('/api/auth/forgot-password', { email: user.email });
+      toast.success(`Reset link sent to ${user.email}`);
+    } catch {
+      toast.error('Could not send the reset link. Please try again.');
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  const nav = [
+    { id: 'profile', icon: User, label: 'Profile' },
+    { id: 'audio-video', icon: Video, label: 'Audio & video' },
+    { id: 'notifications', icon: Bell, label: 'Notifications' },
+    { id: 'security', icon: Shield, label: 'Security' },
+  ];
+
+  const renderTab = () => {
     switch (activeTab) {
-      case "profile":
+      case 'profile':
         return (
           <Card className="p-6">
-            <h2 className="text-[16px] font-semibold text-stone-900 mb-6">Public Profile</h2>
-            <div className="flex items-start gap-6 mb-8">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border border-stone-200" />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-semibold">
-                  {user?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+            <h2 className="t-h3 text-ink mb-6">Public profile</h2>
+
+            <div className="flex items-start gap-5 mb-8">
+              <Avatar
+                name={user?.fullName}
+                email={user?.email}
+                src={avatarUrl}
+                size="xl"
+                className="border border-line"
+              />
+              <div className="space-y-2.5">
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={openPhotoDialog}>
+                    Change photo
+                  </Button>
+                  {avatarUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger-ink hover:bg-danger-soft"
+                      onClick={() => setAvatarUrl(null)}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
-              )}
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <Button variant="secondary" className="h-9" onClick={handleChangePhoto}>Change Photo URL</Button>
-                  <Button variant="ghost" className="h-9 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleRemovePhoto}>Remove</Button>
-                </div>
-                <p className="text-[13px] text-stone-500">Provide a direct URL to your avatar.</p>
+                <p className="t-caption text-ink-3">A direct link to a square image works best.</p>
               </div>
             </div>
 
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">First Name</label>
-                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Last Name</label>
-                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="First name" htmlFor="s-first">
+                  <Input id="s-first" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                </Field>
+                <Field label="Last name" htmlFor="s-last">
+                  <Input id="s-last" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                </Field>
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Organization</label>
-                  <Input value={organization} onChange={(e) => setOrganization(e.target.value)} placeholder="e.g. Acme Corp" />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Timezone</label>
-                  <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Organisation" htmlFor="s-org">
+                  <Input
+                    id="s-org"
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
+                    placeholder="Where you work"
+                  />
+                </Field>
+                <Field label="Timezone" htmlFor="s-tz">
+                  <Input id="s-tz" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+                </Field>
               </div>
-              <div>
-                <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Email Address</label>
-                <Input value={user?.email || ''} readOnly className="bg-stone-50 text-stone-500" />
-              </div>
+              <Field label="Email address" hint="Your email is used to sign in and cannot be changed here.">
+                <Input value={user?.email || ''} readOnly className="text-ink-3 cursor-not-allowed" />
+              </Field>
             </div>
-            <div className="mt-8 pt-6 border-t border-stone-100 flex justify-end">
-              <Button onClick={handleSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
+
+            <div className="mt-7 pt-5 border-t border-line flex justify-end">
+              <Button onClick={handleSave} loading={isSaving}>
+                Save changes
+              </Button>
             </div>
           </Card>
         );
-      case "audio-video":
+
+      case 'audio-video':
         return (
           <Card className="p-6">
-            <h2 className="text-[16px] font-semibold text-stone-900 mb-6">Audio & Video Settings</h2>
+            <h2 className="t-h3 text-ink mb-1">Audio & video</h2>
+            <p className="t-small text-ink-3 mb-6">
+              Check your camera and microphone before your next call.
+            </p>
             <DeviceTester />
           </Card>
         );
-      case "notifications":
+
+      case 'notifications':
         return (
           <Card className="p-6">
-            <h2 className="text-[16px] font-semibold text-stone-900 mb-6">Notification Preferences</h2>
-            <div className="space-y-4">
-              {[
-                { title: "Meeting Reminders", desc: "Get notified 10 minutes before a meeting starts" },
-                { title: "Chat Messages", desc: "Receive notifications for direct messages" },
-                { title: "New Recordings", desc: "Alert me when a meeting recording is ready to view" },
-                { title: "Email Updates", desc: "Receive daily digests and product updates via email" }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b border-stone-100 last:border-0">
-                  <div>
-                    <p className="text-[14px] font-medium text-stone-900">{item.title}</p>
-                    <p className="text-[13px] text-stone-500">{item.desc}</p>
-                  </div>
-                  <div className="w-10 h-6 bg-emerald-500 rounded-full p-1 cursor-pointer">
-                    <div className="w-4 h-4 bg-white rounded-full translate-x-4 shadow-sm transition-transform"></div>
-                  </div>
-                </div>
+            <h2 className="t-h3 text-ink mb-1">Notifications</h2>
+            <p className="t-small text-ink-3 mb-4">Saved on this device.</p>
+            <div>
+              {NOTIFICATION_PREFS.map((p) => (
+                <SettingsRow key={p.id} title={p.title} desc={p.desc}>
+                  <Switch
+                    checked={prefs[p.id] ?? true}
+                    onChange={(v) => setPref(p.id, v)}
+                    label={p.title}
+                  />
+                </SettingsRow>
               ))}
             </div>
           </Card>
         );
-      case "security":
+
+      case 'security':
         return (
-          <Card className="p-6">
-            <h2 className="text-[16px] font-semibold text-stone-900 mb-6">Security & Login</h2>
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-[14px] font-medium text-stone-900 mb-4">Change Password</h3>
-                <div className="space-y-4 max-w-md">
-                  <div>
-                    <label className="block text-[13px] font-medium text-stone-700 mb-1.5">Current Password</label>
-                    <Input type="password" placeholder="••••••••" />
+          <div className="space-y-5">
+            <Card className="p-6">
+              <h2 className="t-h3 text-ink mb-1">Password</h2>
+              <p className="t-small text-ink-3 mb-5">
+                We'll email a secure link to <span className="text-ink font-medium">{user?.email}</span>.
+                The link expires in 30 minutes.
+              </p>
+              <Button
+                variant="secondary"
+                onClick={handlePasswordReset}
+                loading={isSendingReset}
+                leading={<KeyRound className="w-4 h-4" />}
+              >
+                Send password reset link
+              </Button>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="t-h3 text-ink mb-1">Two-factor authentication</h2>
+              <p className="t-small text-ink-3 mb-5">
+                An extra step at sign-in, using an authenticator app.
+              </p>
+              <div className="flex items-center justify-between gap-4 p-4 rounded-lg border border-line bg-surface-inset">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-surface border border-line flex items-center justify-center text-ink-3">
+                    <MonitorSmartphone className="w-4 h-4" />
                   </div>
                   <div>
-                    <label className="block text-[13px] font-medium text-stone-700 mb-1.5">New Password</label>
-                    <Input type="password" placeholder="••••••••" />
+                    <p className="t-small font-medium text-ink">Authenticator app</p>
+                    <p className="t-caption text-ink-3">Not available yet</p>
                   </div>
-                  <Button>Update Password</Button>
                 </div>
+                <Badge tone="neutral">Coming soon</Badge>
               </div>
-              <div className="pt-6 border-t border-stone-100">
-                <h3 className="text-[14px] font-medium text-stone-900 mb-1">Two-Factor Authentication</h3>
-                <p className="text-[13px] text-stone-500 mb-4">Add an extra layer of security to your account.</p>
-                <div className="flex items-center justify-between p-4 border border-stone-200 rounded-[8px] bg-stone-50">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="text-[14px] font-medium text-stone-900">Authenticator App</p>
-                      <p className="text-[13px] text-stone-500">Not configured</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Set Up</Button>
-                </div>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         );
+
       default:
         return null;
     }
@@ -466,30 +695,69 @@ export function SettingsView() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full flex gap-8">
-      <div className="w-64 shrink-0">
-        <h1 className="text-2xl font-semibold text-stone-900 tracking-tight mb-6">Settings</h1>
-        <nav className="space-y-1">
-          {[
-            { id: "profile", icon: User, label: "Profile" },
-            { id: "audio-video", icon: Video, label: "Audio & Video" },
-            { id: "notifications", icon: Bell, label: "Notifications" },
-            { id: "security", icon: Shield, label: "Security" },
-          ].map((item) => (
+      <div className="w-56 shrink-0">
+        <h1 className="t-h1 text-ink mb-5">Settings</h1>
+        <nav className="space-y-0.5">
+          {nav.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-[6px] text-[14px] font-medium transition-colors ${activeTab === item.id ? "bg-emerald-50 text-emerald-700" : "text-stone-600 hover:bg-stone-100"}`}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium transition-colors',
+                activeTab === item.id
+                  ? 'bg-iris-soft text-iris'
+                  : 'text-ink-2 hover:bg-surface-hover hover:text-ink'
+              )}
             >
-              <item.icon className="w-[18px] h-[18px]" />
+              <item.icon className="w-[17px] h-[17px]" />
               {item.label}
             </button>
           ))}
         </nav>
       </div>
 
-      <div className="flex-1 max-w-2xl space-y-6">
-        {renderTabContent()}
-      </div>
+      <div className="flex-1 max-w-2xl">{renderTab()}</div>
+
+      {isPhotoOpen && (
+        <Modal
+          onClose={() => setIsPhotoOpen(false)}
+          title="Profile photo"
+          description="Paste a direct link to a square image."
+          size="sm"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setIsPhotoOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setAvatarUrl(photoDraft.trim() || null);
+                  setIsPhotoOpen(false);
+                }}
+              >
+                Use this photo
+              </Button>
+            </>
+          }
+        >
+          <div className="flex items-center gap-4">
+            <Avatar
+              name={user?.fullName}
+              email={user?.email}
+              src={photoDraft.trim() || null}
+              size="lg"
+              className="border border-line"
+            />
+            <Input
+              placeholder="https://example.com/photo.jpg"
+              value={photoDraft}
+              onChange={(e) => setPhotoDraft(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <p className="t-caption text-ink-3 mt-3">Remember to save your profile afterwards.</p>
+        </Modal>
+      )}
     </div>
   );
 }

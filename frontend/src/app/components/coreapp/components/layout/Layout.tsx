@@ -1,128 +1,230 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Home, Calendar, Video, Users, Settings, Search, Bell, ChevronDown, Shield } from "lucide-react";
-import { cn } from "../../utils/cn";
-import { Input } from "../ui/Input";
-import { useAuthStore } from "../../../../store/useAuthStore";
-import { useMeetingStore } from "../../../../store/useMeetingStore";
+import { useState, useRef, useEffect } from 'react';
+import {
+  Home, Calendar, Users, Settings, Search, Bell, Shield, LogOut, Sun, Moon, Check,
+} from 'lucide-react';
+import { cn } from '../../../../ui/cn';
+import { Input } from '../../../../ui/Input';
+import { Avatar } from '../../../../ui/Avatar';
+import { Logo } from '../../../../ui/Logo';
+import { Button } from '../../../../ui/Button';
+import { EmptyState } from '../../../../ui/EmptyState';
+import { useTheme } from '../../../../hooks/useTheme';
+import { useAuthStore } from '../../../../store/useAuthStore';
+import { useMeetingStore } from '../../../../store/useMeetingStore';
+
+/** Closes a floating panel on outside click and on Escape. */
+function useDismiss(onDismiss: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onDismiss();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onDismiss();
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onDismiss]);
+  return ref;
+}
 
 /**
- * Renders the main sidebar navigation.
- * Includes links to Dashboard, Meetings, Recordings, Contacts, and Settings.
- * Displays an Admin Portal link if the user has the 'ADMIN' role.
+ * Primary navigation rail.
  *
- * @param props.currentView The ID of the currently active view.
- * @param props.setView Callback to update the active view.
+ * Sign-out now lives in the user card at the bottom rather than as a button
+ * floating over the page in the corner.
  */
-export function Sidebar({ currentView, setView }: { currentView: string, setView: (v: string) => void }) {
+export function Sidebar({
+  currentView,
+  setView,
+  onSignOut,
+}: {
+  currentView: string;
+  setView: (v: string) => void;
+  onSignOut?: () => void;
+}) {
   const { user } = useAuthStore();
-  
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useDismiss(() => setMenuOpen(false));
+
   const items = [
-    { id: "dashboard", icon: Home, label: "Home" },
-    { id: "meetings", icon: Calendar, label: "Meetings" },
-    { id: "contacts", icon: Users, label: "Contacts" },
-    { id: "settings", icon: Settings, label: "Settings" },
+    { id: 'dashboard', icon: Home, label: 'Home' },
+    { id: 'meetings', icon: Calendar, label: 'Meetings' },
+    { id: 'contacts', icon: Users, label: 'Contacts' },
+    { id: 'settings', icon: Settings, label: 'Settings' },
   ];
 
   if (user?.role === 'ADMIN') {
-    items.push({ id: "admin-users", icon: Shield, label: "Admin Portal" });
+    items.push({ id: 'admin-users', icon: Shield, label: 'Admin' });
   }
 
   return (
-    <div className="w-64 border-r border-stone-200 bg-[#faf9f7] h-screen flex flex-col relative z-10">
-      <div className="h-16 flex items-center px-6">
-        <div className="flex items-center gap-2 text-emerald-600 font-semibold text-lg tracking-tight">
-          <div className="w-6 h-6 rounded bg-gradient-to-br from-[#34d399] to-[#059669] flex items-center justify-center">
-            <Video className="w-4 h-4 text-white" />
-          </div>
-          Vaarta
-        </div>
+    <aside className="w-[248px] shrink-0 border-r border-line bg-canvas-raised h-screen flex flex-col">
+      <div className="h-16 flex items-center px-5 shrink-0">
+        <Logo size="sm" />
       </div>
-      <nav className="flex-1 px-4 py-4 space-y-1">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setView(item.id)}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-[6px] text-[14px] font-medium transition-colors",
-              currentView === item.id
-                ? "bg-emerald-50 text-emerald-700"
-                : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-            )}
-          >
-            <item.icon className="w-[18px] h-[18px]" />
-            {item.label}
-          </button>
-        ))}
+
+      <nav className="flex-1 px-3 py-3 space-y-0.5">
+        {items.map((item) => {
+          const active =
+            currentView === item.id ||
+            (item.id === 'admin-users' && currentView.startsWith('admin-'));
+          return (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={cn(
+                'relative w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium transition-colors',
+                active
+                  ? 'bg-iris-soft text-iris'
+                  : 'text-ink-2 hover:bg-surface-hover hover:text-ink'
+              )}
+            >
+              {active && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-iris" />
+              )}
+              <item.icon className="w-[17px] h-[17px] shrink-0" />
+              {item.label}
+            </button>
+          );
+        })}
       </nav>
-    </div>
+
+      {/* User card */}
+      <div className="p-3 border-t border-line relative" ref={menuRef}>
+        {menuOpen && (
+          <div className="absolute bottom-[calc(100%-4px)] left-3 right-3 mb-1 rounded-xl border border-line bg-surface elev-3 p-1 z-50">
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setView('settings');
+              }}
+              className="w-full flex items-center gap-2.5 px-3 h-9 rounded-md t-small text-ink-2 hover:bg-surface-hover hover:text-ink transition-colors"
+            >
+              <Settings className="w-4 h-4" /> Account settings
+            </button>
+            {onSignOut && (
+              <button
+                onClick={onSignOut}
+                className="w-full flex items-center gap-2.5 px-3 h-9 rounded-md t-small text-danger-ink hover:bg-danger-soft transition-colors"
+              >
+                <LogOut className="w-4 h-4" /> Sign out
+              </button>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="w-full flex items-center gap-2.5 p-2 rounded-lg hover:bg-surface-hover transition-colors text-left"
+        >
+          <Avatar name={user?.fullName} email={user?.email} src={user?.avatarUrl} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="t-small font-medium text-ink truncate">
+              {user?.fullName || user?.email?.split('@')[0] || 'Account'}
+            </p>
+            <p className="t-caption text-ink-3 truncate">{user?.email}</p>
+          </div>
+        </button>
+      </div>
+    </aside>
   );
 }
 
 /**
- * Renders the top navigation bar.
- * Contains global search, a notifications dropdown, and a user profile/avatar menu.
+ * Top bar: search, theme toggle, notifications and profile.
  *
- * @param props.onAvatarClick Optional callback when the user's avatar is clicked.
+ * The theme toggle is new here — the signed-in product previously had no way to
+ * switch themes at all, so a user who chose light on the landing page landed in
+ * a dark app with no escape.
  */
 export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  const { user } = useAuthStore();
-  const initial = user?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U';
+  const dropdownRef = useDismiss(() => setShowNotifications(false));
+  const { isDark, setIsDark } = useTheme();
 
+  const { user } = useAuthStore();
   const { meetings } = useMeetingStore();
-  const upcomingMeetings = meetings
-    .filter(m => m.status === 'SCHEDULED' && m.scheduledStart && new Date(m.scheduledStart) > new Date())
+
+  const upcoming = meetings
+    .filter((m) => m.status === 'SCHEDULED' && m.scheduledStart && new Date(m.scheduledStart) > new Date())
     .sort((a, b) => new Date(a.scheduledStart!).getTime() - new Date(b.scheduledStart!).getTime());
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
-    <div className="h-16 border-b border-stone-200 bg-white flex items-center justify-between px-8 sticky top-0 z-10">
-      <div className="w-96">
-        <Input icon={<Search className="w-4 h-4" />} placeholder="Search meetings, recordings, or contacts..." />
+    <header className="h-16 shrink-0 border-b border-line bg-canvas/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-30">
+      <div className="w-full max-w-sm">
+        <Input
+          icon={<Search className="w-4 h-4" />}
+          placeholder="Search meetings, contacts…"
+          aria-label="Search"
+        />
       </div>
-      <div className="flex items-center gap-4 relative">
+
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsDark(!isDark)}
+          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+        >
+          {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+        </Button>
+
         <div className="relative" ref={dropdownRef}>
-          <button 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowNotifications(!showNotifications)}
-            className={cn("w-10 h-10 rounded-full flex items-center justify-center transition-colors relative", showNotifications ? "bg-stone-100 text-stone-900" : "text-stone-500 hover:bg-stone-100")}
+            aria-label="Notifications"
+            className={cn('relative', showNotifications && 'bg-surface-hover text-ink')}
           >
             <Bell className="w-[18px] h-[18px]" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
-          
+            {upcoming.length > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-iris ring-2 ring-canvas" />
+            )}
+          </Button>
+
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-80 bg-white rounded-[12px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 overflow-hidden py-2 z-50">
-              <div className="px-4 py-2 border-b border-stone-50 flex items-center justify-between">
-                <span className="font-semibold text-[14px] text-stone-900">Notifications</span>
-                <button className="text-[12px] text-emerald-600 hover:text-emerald-700 font-medium">Mark all as read</button>
+            <div className="absolute right-0 top-12 w-[320px] rounded-xl border border-line bg-surface elev-3 overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-line flex items-center justify-between">
+                <span className="t-small font-semibold text-ink">Upcoming</span>
+                <button className="t-caption font-medium text-iris hover:underline">
+                  Mark all read
+                </button>
               </div>
-              <div className="max-h-80 overflow-y-auto">
-                {upcomingMeetings.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-[13px] text-stone-500">
-                    No upcoming meetings
-                  </div>
+              <div className="max-h-80 overflow-y-auto scrollbar-fine">
+                {upcoming.length === 0 ? (
+                  <EmptyState
+                    icon={<Check className="w-5 h-5" />}
+                    title="All clear"
+                    description="Nothing scheduled coming up."
+                    className="py-8"
+                  />
                 ) : (
-                  upcomingMeetings.map((meeting) => {
-                    const diffMins = Math.round((new Date(meeting.scheduledStart!).getTime() - new Date().getTime()) / 60000);
-                    const timeText = diffMins < 60 ? `starts in ${diffMins} mins` : `starts at ${new Date(meeting.scheduledStart!).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                  upcoming.map((meeting) => {
+                    const mins = Math.round(
+                      (new Date(meeting.scheduledStart!).getTime() - Date.now()) / 60000
+                    );
+                    const when =
+                      mins < 60
+                        ? `Starts in ${mins} min`
+                        : `Starts at ${new Date(meeting.scheduledStart!).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}`;
                     return (
-                      <div key={meeting.id} className="px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5"><Calendar className="w-4 h-4" /></div>
-                        <div>
-                          <p className="text-[13px] text-stone-900 leading-snug">Upcoming: <strong>{meeting.title}</strong></p>
-                          <p className="text-[12px] text-stone-500 mt-1">{timeText}</p>
+                      <div
+                        key={meeting.id}
+                        className="px-4 py-3 hover:bg-surface-hover transition-colors flex gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-iris-soft text-iris flex items-center justify-center shrink-0">
+                          <Calendar className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="t-small text-ink font-medium truncate">{meeting.title}</p>
+                          <p className="t-caption text-ink-3 mt-0.5">{when}</p>
                         </div>
                       </div>
                     );
@@ -133,20 +235,14 @@ export function TopNav({ onAvatarClick }: { onAvatarClick?: () => void }) {
           )}
         </div>
 
-        <div 
-          className="flex items-center gap-2 cursor-pointer hover:bg-stone-50 p-1 pr-2 rounded-full transition-colors"
+        <button
           onClick={onAvatarClick}
+          className="ml-1 rounded-full hover:opacity-85 transition-opacity"
+          aria-label="Account"
         >
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-[13px]">
-              {initial}
-            </div>
-          )}
-          <ChevronDown className="w-4 h-4 text-stone-500" />
-        </div>
+          <Avatar name={user?.fullName} email={user?.email} src={user?.avatarUrl} size="sm" />
+        </button>
       </div>
-    </div>
+    </header>
   );
 }
