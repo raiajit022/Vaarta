@@ -60,7 +60,12 @@ resend:
 app:
   frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
   user-service-url: ${USER_SERVICE_URL:https://user-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io}
+  # Both spellings are required: AuthService reads app.internal-key while
+  # InternalApiKeyFilter reads app.internal-api-key. The filter's property was
+  # never defined, so the service failed to start on its first cold boot after
+  # that filter was introduced.
   internal-key: ${INTERNAL-API-KEY}
+  internal-api-key: ${INTERNAL-API-KEY}
 
 # ── Actuator ─────────────────────────────────────────────────────────────────
 management:
