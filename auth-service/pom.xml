@@ -50,11 +50,9 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- ── Caching (Redis) ─────────────────────────────────────────── -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
+        <!-- Redis removed: caching is disabled (spring.cache.type: none).
+             Keeping the starter would register an Actuator Redis health
+             indicator that reports DOWN once the Redis instance is deleted. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>

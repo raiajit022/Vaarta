@@ -12,7 +12,7 @@ spring:
     name: auth-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    url: ${DB_URL:jdbc:postgresql://vaarta-db-v2.postgres.database.azure.com:5432/postgres}
     username: ${DB_USER:dbadmin}
     password: ${DB-PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -32,19 +32,18 @@ spring:
     baseline-on-migrate: false
     table: flyway_schema_history_auth
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      ssl:
-        enabled: ${REDIS_SSL:false}
-
+  # Caching disabled — see note below.
+  #
+  # This service previously cached through an Azure Redis Basic C0 instance.
+  # At current traffic the cache was memoising a handful of primary-key lookups
+  # against a database averaging ~10% CPU, so it cost money without measurably
+  # reducing load. Redis has been removed.
+  #
+  # If caching is needed again, do NOT use `type: simple` —
+  # ConcurrentMapCacheManager ignores time-to-live, so entries never expire.
+  # Use Caffeine with an explicit expireAfterWrite, or reinstate Redis.
   cache:
-    type: redis
-    redis:
-      time-to-live: 3600000 # 1 hour default TTL for users
-      cache-null-values: false
+    type: none
 
 # ── JWT ─────────────────────────────────────────────────────────────────────
 jwt:

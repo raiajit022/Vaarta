@@ -11,7 +11,7 @@ spring:
   application:
     name: notification-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    url: ${DB_URL:jdbc:postgresql://vaarta-db-v2.postgres.database.azure.com:5432/postgres}
     username: ${DB_USER:dbadmin}
     password: ${DB-PASSWORD}
     driver-class-name: org.postgresql.Driver
