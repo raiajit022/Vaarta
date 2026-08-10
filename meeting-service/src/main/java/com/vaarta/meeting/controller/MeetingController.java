@@ -69,6 +69,20 @@ public class MeetingController {
     }
 
     /**
+     * Returns the caller's permanent personal room, creating it on first request.
+     *
+     * <p>Declared before {@code /{id}} so Spring matches the literal path rather
+     * than treating "personal" as a meeting id.
+     *
+     * @return the personal room, whose join code is the user's personal meeting ID.
+     */
+    @GetMapping("/personal")
+    public ResponseEntity<MeetingResponse> getPersonalRoom() {
+        UUID userId = getCurrentUserId();
+        return ResponseEntity.ok(meetingService.getOrCreatePersonalRoom(userId));
+    }
+
+    /**
      * Retrieves the details of a specific meeting.
      *
      * @param id the UUID of the meeting.

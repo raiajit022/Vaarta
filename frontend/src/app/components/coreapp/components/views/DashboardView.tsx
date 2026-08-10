@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Plus, Video, Calendar, Clock, ArrowRight, Radio, CalendarDays } from 'lucide-react';
+import { Plus, Video, Calendar, Clock, ArrowRight, Radio, CalendarDays, Copy } from 'lucide-react';
 import { Button } from '../../../../ui/Button';
 import { Card } from '../../../../ui/Card';
 import { Badge } from '../../../../ui/Badge';
@@ -123,14 +123,16 @@ export function DashboardView({
   onJoinDirectly?: (meeting: Meeting) => void;
 }) {
   const { user } = useAuthStore();
-  const { meetings, fetchMyMeetings, isLoading } = useMeetingStore();
+  const { meetings, fetchMyMeetings, fetchPersonalRoom, isLoading } = useMeetingStore();
   const [selectedMeeting, setSelectedMeeting] = React.useState<Meeting | null>(null);
+  const [personalRoom, setPersonalRoom] = React.useState<Meeting | null>(null);
 
   const displayName = user?.fullName?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
 
   useEffect(() => {
     fetchMyMeetings();
-  }, [fetchMyMeetings]);
+    fetchPersonalRoom().then(setPersonalRoom);
+  }, [fetchMyMeetings, fetchPersonalRoom]);
 
   const upcoming = meetings.filter((m) => !isPastMeeting(m));
   const past = meetings.filter((m) => isPastMeeting(m));
@@ -154,9 +156,26 @@ export function DashboardView({
                   : 'Nothing on the calendar. Enjoy it.'}
           </p>
         </div>
-        <Button onClick={onCreateMeeting} leading={<Plus className="w-4 h-4" />}>
-          New meeting
-        </Button>
+        <div className="flex items-center gap-3 shrink-0">
+          {personalRoom && (
+            <div className="hidden md:flex items-center gap-2 pl-3 pr-2 py-2 rounded-lg bg-surface border border-line elev-1">
+              <div className="text-right">
+                <p className="t-caption text-ink-3 leading-tight">Personal meeting ID</p>
+                <p className="t-small font-mono text-ink leading-tight">{personalRoom.joinCode}</p>
+              </div>
+              <button
+                onClick={() => copyToClipboard(personalRoom.joinCode, 'Personal meeting ID copied')}
+                className="p-1.5 rounded-md text-ink-3 hover:text-ink hover:bg-surface-hover transition-colors"
+                title="Copy your personal meeting ID"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <Button onClick={onCreateMeeting} leading={<Plus className="w-4 h-4" />}>
+            New meeting
+          </Button>
+        </div>
       </div>
 
       {/* Quick actions */}

@@ -1,9 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { LiveKitRoom, VideoConference, RoomAudioRenderer, useChat } from '@livekit/components-react';
+import {
+  LiveKitRoom, VideoConference, RoomAudioRenderer, useChat, useDataChannel,
+} from '@livekit/components-react';
 import '@livekit/components-styles';
-import { Copy, Sparkles, X, UserPlus, PhoneOff, Link2, Send } from 'lucide-react';
+import {
+  Copy, Sparkles, X, UserPlus, PhoneOff, Link2, Send, ListChecks, ChevronDown, Check,
+  NotebookPen,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { useMeetingStore } from '../../../../store/useMeetingStore';
+import { useMeetingStore, parseJsonList } from '../../../../store/useMeetingStore';
 import { useAuthStore } from '../../../../store/useAuthStore';
 import { Button } from '../../../../ui/Button';
 import { Input } from '../../../../ui/Input';
@@ -14,43 +19,88 @@ import { copyToClipboard } from '../../../../ui/clipboard';
 import { cn } from '../../../../ui/cn';
 import { MeetingReactions } from './MeetingReactions';
 
-/**
- * Watches the LiveKit chat channel and forwards any local `@bot` message to the
- * backend, which injects the reply back into the data channel.
- */
-function BotChatListener({ meetingId }: { meetingId: string }) {
-  const { chatMessages } = useChat();
-  const { sendBotCommand } = useMeetingStore();
-  const [lastProcessedId, setLastProcessedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (chatMessages.length === 0) return;
-    const latest = chatMessages[chatMessages.length - 1];
-
-    if (
-      latest.id !== lastProcessedId &&
-      latest.from?.isLocal &&
-      latest.message.trim().toLowerCase().startsWith('@bot')
-    ) {
-      setLastProcessedId(latest.id);
-      sendBotCommand(meetingId, latest.message).catch(console.error);
-    }
-  }, [chatMessages, lastProcessedId, meetingId, sendBotCommand]);
-
-  return null;
-}
-
 const QUICK_COMMANDS = [
   { label: 'Summarise so far', command: '@bot summarize the meeting so far' },
   { label: 'List action items', command: '@bot list action items' },
   { label: 'Read the room', command: '@bot how is the mood' },
 ];
 
-/** Assistant launcher in the meeting top bar. */
-function AIAssistantPanel() {
-  const { send } = useChat();
+/** Topic `meeting-service` publishes assistant replies on (LiveKitController). */
+const BOT_REPLY_TOPIC = 'lk-chat-topic';
+
+/** Topic peers use to broadcast shared-note edits to each other. */
+const NOTES_TOPIC = 'vaarta-notes';
+
+interface BotReply {
+  id: string;
+  message: string;
+  timestamp: number;
+}
+
+/**
+ * The assistant dock — one component owning the whole `@bot` round trip.
+ *
+ * It does three things that used to be missing or scattered:
+ *
+ *  1. **Persists chat.** LiveKit chat is in-room only and dies with the room, but
+ *     every AI agent reads chat history from the database. Each client mirrors
+ *     only its *own* messages, so a message is written exactly once regardless of
+ *     how many people are in the room.
+ *  2. **Forwards `@bot`** to the backend, as before.
+ *  3. **Receives the reply.** `meeting-service` broadcasts on `lk-chat-topic`,
+ *     while LiveKit's `useChat()` listens on its own `lk.chat` topic — so replies
+ *     were being published into the void. Replies land here instead of in the
+ *     chat scroll, which also keeps them from being lost mid-conversation.
+ */
+function AssistantDock({ meetingId }: { meetingId: string }) {
+  const { chatMessages, send } = useChat();
+  const { sendBotCommand, persistChatMessage } = useMeetingStore();
+
   const [isOpen, setIsOpen] = useState(false);
+  const [replies, setReplies] = useState<BotReply[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [isThinking, setIsThinking] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Messages already handled, so re-renders never double-write.
+  const processedRef = useRef<Set<string>>(new Set());
+
+  useDataChannel(BOT_REPLY_TOPIC, (msg) => {
+    try {
+      const parsed = JSON.parse(new TextDecoder().decode(msg.payload));
+      if (!parsed?.message) return;
+      setReplies((prev) => [
+        ...prev,
+        {
+          id: String(parsed.id ?? Date.now()),
+          message: String(parsed.message),
+          timestamp: Number(parsed.timestamp ?? Date.now()),
+        },
+      ]);
+      setIsThinking(false);
+      setIsOpen((open) => {
+        if (!open) setUnread((n) => n + 1);
+        return open;
+      });
+    } catch (e) {
+      console.error('Could not parse assistant reply', e);
+    }
+  });
+
+  useEffect(() => {
+    for (const m of chatMessages) {
+      if (!m.from?.isLocal || processedRef.current.has(m.id)) continue;
+      processedRef.current.add(m.id);
+
+      // Best-effort history write; never blocks the live conversation.
+      persistChatMessage(meetingId, m.message);
+
+      if (m.message.trim().toLowerCase().startsWith('@bot')) {
+        setIsThinking(true);
+        sendBotCommand(meetingId, m.message).catch(console.error);
+      }
+    }
+  }, [chatMessages, meetingId, persistChatMessage, sendBotCommand]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -66,10 +116,15 @@ function AIAssistantPanel() {
     };
   }, [isOpen]);
 
+  const open = () => {
+    setIsOpen(true);
+    setUnread(0);
+  };
+
   const run = (cmd: string) => {
     send?.(cmd).catch(console.error);
-    setIsOpen(false);
-    toast.success('Asked the assistant — watch the chat panel');
+    setIsThinking(true);
+    open();
   };
 
   return (
@@ -77,14 +132,20 @@ function AIAssistantPanel() {
       <Button
         variant={isOpen ? 'primary' : 'secondary'}
         size="sm"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => (isOpen ? setIsOpen(false) : open())}
         leading={<Sparkles className="w-4 h-4" />}
+        className="relative"
       >
         Assistant
+        {unread > 0 && !isOpen && (
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-iris text-on-iris t-caption font-semibold flex items-center justify-center tabular-nums">
+            {unread}
+          </span>
+        )}
       </Button>
 
       {isOpen && (
-        <div className="absolute top-11 right-0 w-[280px] rounded-xl border border-line bg-surface elev-4 p-4 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute top-11 right-0 w-[320px] rounded-xl border border-line bg-surface elev-4 p-4 animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between mb-3">
             <h3 className="flex items-center gap-1.5 t-small font-semibold text-ink">
               <Sparkles className="w-3.5 h-3.5 text-iris" /> Assistant
@@ -97,6 +158,28 @@ function AIAssistantPanel() {
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {replies.length > 0 && (
+            <div className="max-h-56 overflow-y-auto scrollbar-fine space-y-2 mb-3 -mr-1 pr-1">
+              {replies.map((r) => (
+                <div
+                  key={r.id}
+                  className="rounded-lg bg-iris-soft border border-iris-line p-3 animate-in fade-in duration-200"
+                >
+                  <p className="t-caption font-semibold text-iris mb-1 flex items-center gap-1">
+                    <VaartaMark size={11} /> Vaarta AI
+                  </p>
+                  <p className="t-small text-ink leading-relaxed whitespace-pre-wrap">{r.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isThinking && (
+            <div className="flex items-center gap-2 t-caption text-ink-3 mb-3">
+              <Spinner size={12} /> Thinking…
+            </div>
+          )}
 
           <p className="t-caption text-ink-3 leading-relaxed mb-3">
             Type <span className="font-mono text-iris bg-iris-soft px-1 py-0.5 rounded">@bot</span> in
@@ -116,6 +199,200 @@ function AIAssistantPanel() {
             ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Live agenda rail.
+ *
+ * `agenda_generator` writes an agenda at meeting-creation time and, until now,
+ * nothing ever displayed it during the call — an LLM call paid for and thrown
+ * away. This shows it while the meeting is happening and lets the host tick
+ * items off.
+ *
+ * Tick state is intentionally **local to the session**: persisting it would mean
+ * a new column, an endpoint and a sync path for something that only matters for
+ * the duration of one call.
+ */
+function AgendaRail({ agenda, startedAt }: { agenda: string[]; startedAt?: string | null }) {
+  const [done, setDone] = useState<Set<number>>(new Set());
+  const [collapsed, setCollapsed] = useState(false);
+  const [elapsed, setElapsed] = useState('');
+
+  useEffect(() => {
+    if (!startedAt) return;
+    const started = new Date(startedAt).getTime();
+    if (Number.isNaN(started)) return;
+
+    const tick = () => {
+      const mins = Math.max(0, Math.floor((Date.now() - started) / 60000));
+      setElapsed(mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`);
+    };
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [startedAt]);
+
+  const toggle = (i: number) =>
+    setDone((prev) => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+
+  const remaining = agenda.length - done.size;
+
+  return (
+    <div className="pointer-events-auto w-[264px] rounded-xl border border-line bg-[var(--scrim)] backdrop-blur-xl elev-3 overflow-hidden">
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-surface-hover transition-colors"
+      >
+        <span className="flex items-center gap-1.5 t-caption font-semibold text-ink">
+          <ListChecks className="w-3.5 h-3.5 text-iris" /> Agenda
+        </span>
+        <span className="flex items-center gap-2 t-caption text-ink-3 tabular-nums">
+          {elapsed && <span>{elapsed}</span>}
+          <span>{remaining > 0 ? `${remaining} left` : 'all done'}</span>
+          <ChevronDown
+            className={cn('w-3.5 h-3.5 transition-transform', collapsed && '-rotate-90')}
+          />
+        </span>
+      </button>
+
+      {!collapsed && (
+        <ul className="px-2 pb-2 space-y-0.5 max-h-[40vh] overflow-y-auto scrollbar-fine">
+          {agenda.map((item, i) => {
+            const checked = done.has(i);
+            return (
+              <li key={i}>
+                <button
+                  onClick={() => toggle(i)}
+                  className="w-full flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-surface-hover transition-colors text-left group"
+                >
+                  <span
+                    className={cn(
+                      'mt-0.5 w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors',
+                      checked
+                        ? 'bg-iris border-iris text-on-iris'
+                        : 'border-line-strong group-hover:border-iris-line'
+                    )}
+                  >
+                    {checked && <Check className="w-2.5 h-2.5" strokeWidth={3.5} />}
+                  </span>
+                  <span
+                    className={cn(
+                      't-caption leading-snug transition-colors',
+                      checked ? 'text-ink-3 line-through' : 'text-ink-2'
+                    )}
+                  >
+                    {item}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Shared notes panel — the deliberate alternative to a whiteboard.
+ *
+ * A whiteboard is a CRDT-backed canvas with conflict resolution, shape primitives
+ * and multi-cursor: effectively a second product. A shared notepad covers most of
+ * what people actually use one for in a meeting, for a fraction of the surface.
+ *
+ * Concurrency is last-write-wins. Remote edits are ignored while the local
+ * textarea has focus, so a teammate's keystroke never yanks your cursor
+ * mid-sentence; your next debounced save then becomes the winning version.
+ */
+function NotesPanel({ meetingId }: { meetingId: string }) {
+  const { fetchNotes, saveNotes } = useMeetingStore();
+  const [isOpen, setIsOpen] = useState(false);
+  const [content, setContent] = useState('');
+  const [saved, setSaved] = useState(true);
+
+  const isFocusedRef = useRef(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { send } = useDataChannel(NOTES_TOPIC, (msg) => {
+    if (isFocusedRef.current) return; // don't fight the local typist
+    try {
+      const parsed = JSON.parse(new TextDecoder().decode(msg.payload));
+      if (typeof parsed?.content === 'string') setContent(parsed.content);
+    } catch {
+      /* malformed packet — ignore */
+    }
+  });
+
+  useEffect(() => {
+    fetchNotes(meetingId).then(setContent);
+  }, [meetingId, fetchNotes]);
+
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
+
+  const onChange = (next: string) => {
+    setContent(next);
+    setSaved(false);
+
+    // Broadcast immediately so others see typing; persist on a debounce so we
+    // are not issuing a PUT per keystroke.
+    try {
+      send?.(new TextEncoder().encode(JSON.stringify({ content: next })), { reliable: true });
+    } catch {
+      /* data channel not ready */
+    }
+
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveNotes(meetingId, next).then(() => setSaved(true));
+    }, 800);
+  };
+
+  return (
+    <div className="pointer-events-auto">
+      {isOpen ? (
+        <div className="w-[300px] rounded-xl border border-line bg-surface elev-4 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-line">
+            <span className="flex items-center gap-1.5 t-caption font-semibold text-ink">
+              <NotebookPen className="w-3.5 h-3.5 text-saffron" /> Shared notes
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="t-caption text-ink-3">{saved ? 'Saved' : 'Saving…'}</span>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-ink-3 hover:text-ink p-1 -mr-1 rounded"
+                aria-label="Close notes"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={content}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => (isFocusedRef.current = true)}
+            onBlur={() => (isFocusedRef.current = false)}
+            placeholder="Notes everyone in this meeting can see…"
+            className="w-full h-48 px-3 py-2.5 bg-transparent text-ink t-small leading-relaxed resize-none focus:outline-none placeholder:text-ink-3 scrollbar-fine"
+          />
+        </div>
+      ) : (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setIsOpen(true)}
+          leading={<NotebookPen className="w-4 h-4" />}
+        >
+          Notes
+        </Button>
       )}
     </div>
   );
@@ -239,6 +516,8 @@ export function LiveMeetingView({
   const currentUser = useAuthStore((state) => state.user);
   const isHost = !!currentUser?.id && currentUser.id === meeting?.hostId;
 
+  const agenda = parseJsonList<string>(meeting?.agenda);
+
   const [showInviteCard, setShowInviteCard] = useState(() => isHost);
   const [isEndingMeeting, setIsEndingMeeting] = useState(false);
 
@@ -315,7 +594,6 @@ export function LiveMeetingView({
         data-lk-theme="default"
         style={{ height: '100vh', width: '100vw' }}
       >
-        <BotChatListener meetingId={meeting.id} />
         <VideoConference />
         <RoomAudioRenderer />
 
@@ -338,7 +616,13 @@ export function LiveMeetingView({
             </button>
           </div>
 
-          <AIAssistantPanel />
+          <div className="flex flex-col items-end gap-2">
+            <AssistantDock meetingId={meeting.id} />
+            <NotesPanel meetingId={meeting.id} />
+            {agenda.length > 0 && (
+              <AgendaRail agenda={agenda} startedAt={meeting?.startedAt} />
+            )}
+          </div>
         </div>
 
         {/* ---- Bottom-left: host cluster ---- */}

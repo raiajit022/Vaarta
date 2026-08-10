@@ -435,7 +435,7 @@ export function LandingPage({ isDark, setIsDark, onSignIn, onGetStarted }: Landi
           <div className="grid md:grid-cols-3 gap-5">
             {[
               { icon: Video, title: 'HD video & audio', desc: 'Adaptive bitrate that degrades gracefully instead of freezing.' },
-              { icon: Shield, title: 'Waiting rooms', desc: 'Hosts admit guests deliberately. No surprise arrivals.' },
+              { icon: Shield, title: 'Host controls', desc: 'Mute anyone, remove a participant, or end the call for everyone.' },
               { icon: Monitor, title: 'Screen sharing', desc: 'Share a tab, a window, or the whole desktop in one click.' },
               { icon: Users, title: 'Guest links', desc: 'Share one link. Guests join by name — no account required.' },
               { icon: Film, title: 'Reactions & raise hand', desc: 'Lightweight signals that keep large calls civil.' },

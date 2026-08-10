@@ -15,4 +15,7 @@ import java.util.List;
 public interface MeetingRepository extends JpaRepository<Meeting, UUID> {
     Optional<Meeting> findByJoinCode(String joinCode);
     List<Meeting> findByHostIdOrderByCreatedAtDesc(UUID hostId);
+
+    /** The host's permanent personal room, if they have one yet. */
+    Optional<Meeting> findByHostIdAndPersonalTrue(UUID hostId);
 }

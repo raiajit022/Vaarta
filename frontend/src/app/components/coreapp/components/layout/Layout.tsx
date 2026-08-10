@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  Home, Calendar, Users, Settings, Search, Bell, Shield, LogOut, Sun, Moon, Check,
+  Bell, Calendar, Check, ChevronDown, Home, LogOut, Moon, Search, Settings, Shield, Sun, Users,
 } from 'lucide-react';
 import { cn } from '../../../../ui/cn';
 import { Input } from '../../../../ui/Input';
@@ -49,6 +49,10 @@ export function Sidebar({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useDismiss(() => setMenuOpen(false));
 
+  const isAdmin = user?.role === 'ADMIN';
+  const inAdmin = currentView.startsWith('admin-');
+  const [adminOpen, setAdminOpen] = useState(inAdmin);
+
   const items = [
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'meetings', icon: Calendar, label: 'Meetings' },
@@ -56,9 +60,17 @@ export function Sidebar({
     { id: 'settings', icon: Settings, label: 'Settings' },
   ];
 
-  if (user?.role === 'ADMIN') {
-    items.push({ id: 'admin-users', icon: Shield, label: 'Admin' });
-  }
+  const adminItems = [
+    { id: 'admin-users', label: 'Users' },
+    { id: 'admin-meetings', label: 'Meetings' },
+    { id: 'admin-audit', label: 'Audit log' },
+  ];
+
+  const navItemClass = (active: boolean) =>
+    cn(
+      'relative w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium transition-colors',
+      active ? 'bg-iris-soft text-iris' : 'text-ink-2 hover:bg-surface-hover hover:text-ink'
+    );
 
   return (
     <aside className="w-[248px] shrink-0 border-r border-line bg-canvas-raised h-screen flex flex-col">
@@ -66,22 +78,11 @@ export function Sidebar({
         <Logo size="sm" />
       </div>
 
-      <nav className="flex-1 px-3 py-3 space-y-0.5">
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto scrollbar-fine">
         {items.map((item) => {
-          const active =
-            currentView === item.id ||
-            (item.id === 'admin-users' && currentView.startsWith('admin-'));
+          const active = currentView === item.id;
           return (
-            <button
-              key={item.id}
-              onClick={() => setView(item.id)}
-              className={cn(
-                'relative w-full flex items-center gap-3 px-3 h-9 rounded-md t-small font-medium transition-colors',
-                active
-                  ? 'bg-iris-soft text-iris'
-                  : 'text-ink-2 hover:bg-surface-hover hover:text-ink'
-              )}
-            >
+            <button key={item.id} onClick={() => setView(item.id)} className={navItemClass(active)}>
               {active && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-iris" />
               )}
@@ -90,6 +91,47 @@ export function Sidebar({
             </button>
           );
         })}
+
+        {/* Admin lives inside the same shell rather than a separate console, so
+            an admin never feels like they've left the product. Only rendered for
+            admins — the backend `hasRole("ADMIN")` remains the real boundary. */}
+        {isAdmin && (
+          <div className="pt-2 mt-2 border-t border-line">
+            <button
+              onClick={() => setAdminOpen((o) => !o)}
+              className={navItemClass(inAdmin && !adminOpen)}
+              aria-expanded={adminOpen}
+            >
+              <Shield className="w-[17px] h-[17px] shrink-0" />
+              Admin
+              <ChevronDown
+                className={cn(
+                  'w-3.5 h-3.5 ml-auto transition-transform',
+                  !adminOpen && '-rotate-90'
+                )}
+              />
+            </button>
+
+            {adminOpen && (
+              <div className="mt-0.5 ml-[26px] pl-3 border-l border-line space-y-0.5">
+                {adminItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setView(item.id)}
+                    className={cn(
+                      'w-full text-left px-2.5 h-8 rounded-md t-small transition-colors',
+                      currentView === item.id
+                        ? 'bg-iris-soft text-iris font-medium'
+                        : 'text-ink-3 hover:bg-surface-hover hover:text-ink'
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User card */}

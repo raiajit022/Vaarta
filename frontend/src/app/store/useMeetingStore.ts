@@ -4,6 +4,21 @@ import { meetingClient } from '../apiClient';
 /**
  * Represents a meeting entity from the backend.
  */
+/**
+ * `agenda` and `actionItems` are JSON arrays stored in TEXT columns, so every
+ * read has to parse and tolerate malformed or absent data. One helper rather
+ * than a try/catch at each call site.
+ */
+export function parseJsonList<T = any>(raw: string | null | undefined): T[] {
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
 export interface Meeting {
     id: string;
     title: string;
@@ -67,6 +82,22 @@ interface MeetingStore {
 
     /** Sends a chat command to the bot. */
     sendBotCommand: (meetingId: string, message: string) => Promise<void>;
+
+    /**
+     * Mirrors a live LiveKit chat message into the database.
+     *
+     * LiveKit chat is in-room only and dies with the room, but every AI agent
+     * reads chat history from `meeting-service` — so without this the summariser,
+     * action-item extractor and sentiment tracker all receive an empty list.
+     */
+    persistChatMessage: (meetingId: string, content: string) => Promise<void>;
+
+    /** The user's permanent personal room, created on first request. */
+    fetchPersonalRoom: () => Promise<Meeting | null>;
+
+    /** Shared meeting notes — one document per meeting, last-write-wins. */
+    fetchNotes: (meetingId: string) => Promise<string>;
+    saveNotes: (meetingId: string, content: string) => Promise<void>;
 }
 
 export const useMeetingStore = create<MeetingStore>((set) => ({
@@ -215,6 +246,47 @@ export const useMeetingStore = create<MeetingStore>((set) => ({
         } catch (error: any) {
             console.error("Failed to send bot command", error);
             // We don't necessarily want to throw and crash the UI for a chat command failure
+        }
+    },
+
+    fetchPersonalRoom: async () => {
+        try {
+            const response = await meetingClient.get('/api/meetings/personal');
+            return response.data as Meeting;
+        } catch (error: any) {
+            console.error("Failed to load personal room", error);
+            return null;
+        }
+    },
+
+    fetchNotes: async (meetingId: string) => {
+        try {
+            const response = await meetingClient.get(`/api/meetings/${meetingId}/notes`);
+            return response.data?.content ?? '';
+        } catch (error: any) {
+            console.error("Failed to load meeting notes", error);
+            return '';
+        }
+    },
+
+    saveNotes: async (meetingId: string, content: string) => {
+        try {
+            await meetingClient.put(`/api/meetings/${meetingId}/notes`, { content });
+        } catch (error: any) {
+            // Same contract as chat: a failed save must not disrupt the call.
+            console.error("Failed to save meeting notes", error);
+        }
+    },
+
+    persistChatMessage: async (meetingId: string, content: string) => {
+        if (!content.trim()) return;
+        try {
+            await meetingClient.post(`/api/meetings/${meetingId}/chat`, { content });
+        } catch (error: any) {
+            // Persistence is best-effort: the live conversation must never break
+            // because the history write failed. Guests who are not registered
+            // participants will 4xx here, which is expected.
+            console.error("Failed to persist chat message", error);
         }
     },
     suggestAgenda: async (description: string) => {

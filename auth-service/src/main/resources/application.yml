@@ -89,3 +89,9 @@ logging:
     com.vaarta: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{requestId}] - %msg%n"
+
+# ── Admin bootstrap ──────────────────────────────────────────────────────────
+# Promotes this account to ADMIN on startup. Idempotent; blank disables it.
+# The account must already exist — see AdminBootstrap.
+vaarta:
+  admin-email: ${VAARTA_ADMIN_EMAIL:}

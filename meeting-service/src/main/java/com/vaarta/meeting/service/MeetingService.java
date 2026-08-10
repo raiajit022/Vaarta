@@ -65,6 +65,36 @@ public class MeetingService {
     }
 
     /**
+     * Appends an entry to the admin audit trail owned by auth-service.
+     *
+     * <p>auth-service owns the audit log because it owns identity, so rather than
+     * writing into another service's schema this posts over the existing internal
+     * channel. Failures are swallowed: an audit write must never be the reason a
+     * legitimate admin action fails.
+     *
+     * @param actorId  the admin performing the action
+     * @param action   an audit action constant, e.g. {@code MEETING_FORCE_ENDED}
+     * @param targetId the meeting being acted upon
+     * @param detail   human-readable specifics
+     */
+    public void recordAdminAudit(UUID actorId, String action, UUID targetId, String detail) {
+        try {
+            authRestClient.post()
+                    .uri("/internal/audit")
+                    .body(java.util.Map.of(
+                            "actorId", actorId.toString(),
+                            "action", action,
+                            "targetType", "MEETING",
+                            "targetId", targetId.toString(),
+                            "detail", detail == null ? "" : detail))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.error("Failed to record admin audit: action={} target={}", action, targetId, e);
+        }
+    }
+
+    /**
      * Creates a new meeting and optionally sends out email invitations
      * asynchronously.
      *
@@ -74,6 +104,45 @@ public class MeetingService {
      * @return the created meeting details.
      */
     @Transactional
+    /**
+     * Returns the caller's permanent personal room, creating it on first use.
+     *
+     * <p>A personal meeting ID is modelled as an ordinary meeting with a stable
+     * join code rather than a field on the user in auth-service. That keeps the
+     * whole feature inside this service: the existing join endpoint resolves it
+     * with no special case, and there is no cross-service lookup on the join path.
+     */
+    public MeetingResponse getOrCreatePersonalRoom(UUID hostId) {
+        return meetingRepository.findByHostIdAndPersonalTrue(hostId)
+                .map(this::mapToResponse)
+                .orElseGet(() -> {
+                    String code;
+                    do {
+                        code = joinCodeGenerator.generatePersonalId();
+                    } while (meetingRepository.findByJoinCode(code).isPresent());
+
+                    Meeting room = new Meeting();
+                    room.setTitle("Personal room");
+                    room.setHostId(hostId);
+                    room.setJoinCode(code);
+                    room.setPersonal(true);
+                    room.setStatus(MeetingStatus.SCHEDULED);
+                    room = meetingRepository.save(room);
+
+                    // The host is a participant of their own room, so chat and
+                    // notes authorisation work exactly as they do elsewhere.
+                    MeetingParticipant host = new MeetingParticipant();
+                    host.setMeeting(room);
+                    host.setUserId(hostId);
+                    host.setRole("HOST");
+                    host.setJoinedAt(ZonedDateTime.now());
+                    participantRepository.save(host);
+
+                    log.info("Created personal room {} for host {}", code, hostId);
+                    return mapToResponse(room);
+                });
+    }
+
     public MeetingResponse createMeeting(CreateMeetingRequest request, UUID hostId) {
         String joinCode;
         do {
@@ -121,16 +190,14 @@ public class MeetingService {
             final String link = frontendUrl + "/join/" + joinCode;
             final String title = request.getTitle();
             final UUID mId = meeting.getId();
+            // Null for instant meetings; the ICS builder anchors those to "now".
+            final ZonedDateTime start = meeting.getScheduledStart();
 
             for (String email : request.getParticipantEmails()) {
                 try {
                     restClient.post()
                             .uri("/api/notifications/meeting-invite")
-                            .body(java.util.Map.of(
-                                    "recipientEmail", email.trim(),
-                                    "meetingTitle", title,
-                                    "joinLink", link,
-                                    "meetingId", mId))
+                            .body(buildInviteBody(email, title, link, mId, start))
                             .retrieve()
                             .toBodilessEntity();
                 } catch (Exception e) {
@@ -140,6 +207,26 @@ public class MeetingService {
         }
 
         return mapToResponse(meeting);
+    }
+
+    /**
+     * Builds the invite payload for notification-service.
+     *
+     * <p>{@code scheduledStart} is what lets notification-service attach a real
+     * calendar invite; a null value means an instant meeting, which the ICS
+     * builder anchors to the current time.
+     */
+    private java.util.Map<String, Object> buildInviteBody(String email, String title, String link,
+                                                          UUID meetingId, ZonedDateTime start) {
+        java.util.Map<String, Object> body = new java.util.HashMap<>();
+        body.put("recipientEmail", email.trim());
+        body.put("meetingTitle", title);
+        body.put("joinLink", link);
+        body.put("meetingId", meetingId);
+        if (start != null) {
+            body.put("scheduledStart", start.toString());
+        }
+        return body;
     }
 
     /**
@@ -154,16 +241,13 @@ public class MeetingService {
         final String link = frontendUrl + "/join/" + meeting.getJoinCode();
         final String title = meeting.getTitle();
         final UUID mId = meeting.getId();
+        final ZonedDateTime start = meeting.getScheduledStart();
 
         for (String email : emails) {
             try {
                 restClient.post()
                         .uri("/api/notifications/meeting-invite")
-                        .body(java.util.Map.of(
-                                "recipientEmail", email.trim(),
-                                "meetingTitle", title,
-                                "joinLink", link,
-                                "meetingId", mId))
+                        .body(buildInviteBody(email, title, link, mId, start))
                         .retrieve()
                         .toBodilessEntity();
             } catch (Exception e) {
@@ -184,6 +268,9 @@ public class MeetingService {
         return participations.stream()
                 .map(MeetingParticipant::getMeeting)
                 .distinct()
+                // The personal room is permanent and surfaced separately on the
+                // dashboard; listing it here would show a meeting that never ends.
+                .filter(m -> !m.isPersonal())
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

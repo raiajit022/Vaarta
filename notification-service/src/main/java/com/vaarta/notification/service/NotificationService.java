@@ -54,7 +54,20 @@ public class NotificationService {
                 </div>
                 """.formatted(request.getMeetingTitle(), request.getJoinLink());
 
-        sendEmail(request.getRecipientEmail(), "Invitation: " + request.getMeetingTitle(), html, NotificationType.MEETING_INVITE, request.getMeetingId());
+        // Attach a calendar invite so the meeting lands in the recipient's
+        // calendar rather than only in their inbox.
+        String ics = CalendarInvite.build(
+                request.getMeetingId(),
+                request.getMeetingTitle(),
+                request.getJoinLink(),
+                request.getScheduledStart(),
+                fromAddress,
+                request.getRecipientEmail(),
+                request.isCancelled() ? "CANCEL" : "REQUEST",
+                request.isCancelled() ? 1 : 0);
+
+        String subject = (request.isCancelled() ? "Cancelled: " : "Invitation: ") + request.getMeetingTitle();
+        sendEmail(request.getRecipientEmail(), subject, html, NotificationType.MEETING_INVITE, request.getMeetingId(), ics);
     }
 
     /**
@@ -99,17 +112,30 @@ public class NotificationService {
      * @param meetingId the UUID of the associated meeting, for auditing.
      */
     private void sendEmail(String to, String subject, String html, NotificationType type, java.util.UUID meetingId) {
+        sendEmail(to, subject, html, type, meetingId, null);
+    }
+
+    /** As above, additionally attaching an {@code invite.ics} when {@code ics} is non-null. */
+    private void sendEmail(String to, String subject, String html, NotificationType type, java.util.UUID meetingId, String ics) {
         NotificationLog logEntry = new NotificationLog();
         logEntry.setRecipientEmail(to);
         logEntry.setType(type);
         logEntry.setRelatedMeetingId(meetingId);
 
-        Map<String, Object> body = Map.of(
+        Map<String, Object> body = new java.util.HashMap<>(Map.of(
                 "from", fromAddress,
                 "to", new String[]{to},
                 "subject", subject,
                 "html", html
-        );
+        ));
+
+        if (ics != null) {
+            body.put("attachments", java.util.List.of(Map.of(
+                    "filename", "invite.ics",
+                    "content", java.util.Base64.getEncoder()
+                            .encodeToString(ics.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+            )));
+        }
 
         try {
             restClientBuilder.build()

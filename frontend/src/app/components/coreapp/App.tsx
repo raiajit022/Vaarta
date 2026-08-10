@@ -3,19 +3,22 @@ import { toast } from "sonner";
 import { Sidebar, TopNav } from "./components/layout/Layout";
 import { DashboardView } from "./components/views/DashboardView";
 import { CreateMeetingModal, MeetingCreatedModal, ScheduleMeetingModal } from "./components/views/Modals";
-import { JoinMeetingView, PreCallDeviceCheckView, WaitingRoomGuestView, WaitingRoomHostView } from "./components/views/MeetingViews";
+import { JoinMeetingView, PreCallDeviceCheckView } from "./components/views/MeetingViews";
 const LiveMeetingView = lazy(() =>
   import("./components/views/LiveMeetingView").then((m) => ({ default: m.LiveMeetingView }))
 );
 import { MeetingsView, ContactsView, SettingsView } from "./components/views/OtherViews";
-const AdminLayout = lazy(() =>
-  import("../admin/AdminLayout").then((m) => ({ default: m.AdminLayout }))
+const AdminGuard = lazy(() =>
+  import("../admin/AdminGuard").then((m) => ({ default: m.AdminGuard }))
 );
 const AdminUsersPage = lazy(() =>
   import("../admin/AdminUsersPage").then((m) => ({ default: m.AdminUsersPage }))
 );
 const AdminMeetingsPage = lazy(() =>
   import("../admin/AdminMeetingsPage").then((m) => ({ default: m.AdminMeetingsPage }))
+);
+const AdminAuditPage = lazy(() =>
+  import("../admin/AdminAuditPage").then((m) => ({ default: m.AdminAuditPage }))
 );
 import { useAuthStore } from "../../store/useAuthStore";
 import { useMeetingStore } from "../../store/useMeetingStore";
@@ -51,6 +54,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
       case 'pre-call': return meeting?.joinCode ? `/join/${meeting.joinCode}` : '/';
       case 'admin-users': return '/admin/users';
       case 'admin-meetings': return '/admin/meetings';
+      case 'admin-audit': return '/admin/audit';
       default: return '/';
     }
   };
@@ -95,6 +99,8 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
       setCurrentView('admin-users');
     } else if (path === '/admin/meetings') {
       setCurrentView('admin-meetings');
+    } else if (path === '/admin/audit') {
+      setCurrentView('admin-audit');
     }
     // else stays on dashboard (default)
   }, []);
@@ -116,6 +122,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
       else if (path === '/settings') setCurrentView('settings');
       else if (path === '/admin/users') setCurrentView('admin-users');
       else if (path === '/admin/meetings') setCurrentView('admin-meetings');
+      else if (path === '/admin/audit') setCurrentView('admin-audit');
       else if (path === '/join') setCurrentView('join');
       else setCurrentView('dashboard');
     };
@@ -125,10 +132,6 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
 
   useEffect(() => {
     fetchProfile();
-
-    const handleAdmitGuest = () => setCurrentView("live");
-    window.addEventListener('admit-guest', handleAdmitGuest);
-    return () => window.removeEventListener('admit-guest', handleAdmitGuest);
   }, [fetchProfile]);
 
   const handleCreateMeeting = async () => {
@@ -231,28 +234,22 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
           }} 
           onBack={() => setCurrentView("dashboard")}
         />;
-      case "waiting-guest":
-        return <WaitingRoomGuestView meeting={activeMeeting} onLeave={() => setCurrentView("dashboard")} />;
-      case "waiting-host":
+      case "admin-users":
+      case "admin-meetings":
+      case "admin-audit":
+        // Admin renders in the standard shell — same TopNav, same sidebar —
+        // so it reads as part of Vaarta rather than a separate console.
         return (
           <div className="flex-1 flex flex-col min-w-0 bg-canvas">
             <TopNav onAvatarClick={() => setCurrentView("settings")} />
             <div className="flex-1 overflow-auto scrollbar-fine">
-              <WaitingRoomHostView onAdmitAll={() => setCurrentView("live")} />
+              <AdminGuard onNavigate={setCurrentView}>
+                {currentView === "admin-users" && <AdminUsersPage />}
+                {currentView === "admin-meetings" && <AdminMeetingsPage />}
+                {currentView === "admin-audit" && <AdminAuditPage />}
+              </AdminGuard>
             </div>
           </div>
-        );
-      case "admin-users":
-        return (
-          <AdminLayout currentRoute={currentView} onNavigate={setCurrentView}>
-            <AdminUsersPage />
-          </AdminLayout>
-        );
-      case "admin-meetings":
-        return (
-          <AdminLayout currentRoute={currentView} onNavigate={setCurrentView}>
-            <AdminMeetingsPage />
-          </AdminLayout>
         );
       case "live":
         return <LiveMeetingView meeting={activeMeeting} onLeave={() => setCurrentView("dashboard")} />;
@@ -262,7 +259,7 @@ export function CoreApp({ onSignOut }: { onSignOut?: () => void }) {
   };
 
   // Full-screen views hide the sidebar completely
-  const isFullScreenView = ["join", "pre-call", "waiting-guest", "live"].includes(currentView);
+  const isFullScreenView = ["join", "pre-call", "live"].includes(currentView);
 
   return (
     <div className="flex h-screen bg-canvas font-sans text-ink">

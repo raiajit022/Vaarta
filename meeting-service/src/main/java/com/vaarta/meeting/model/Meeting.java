@@ -28,6 +28,13 @@ public class Meeting {
     @Column(nullable = false)
     private MeetingStatus status = MeetingStatus.SCHEDULED;
 
+    /**
+     * Marks the host's permanent personal room. Personal rooms are excluded from
+     * the normal meeting list and never expire.
+     */
+    @Column(name = "is_personal", nullable = false)
+    private boolean personal = false;
+
     @Column(name = "scheduled_start")
     private ZonedDateTime scheduledStart;
 
@@ -120,6 +127,14 @@ public class Meeting {
 
     public void setEndedAt(ZonedDateTime endedAt) {
         this.endedAt = endedAt;
+    }
+
+    public boolean isPersonal() {
+        return personal;
+    }
+
+    public void setPersonal(boolean personal) {
+        this.personal = personal;
     }
 
     public ZonedDateTime getCreatedAt() {

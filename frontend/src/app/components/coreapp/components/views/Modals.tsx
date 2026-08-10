@@ -7,7 +7,7 @@ import { Modal } from '../../../../ui/Modal';
 import { Badge } from '../../../../ui/Badge';
 import { Switch } from '../../../../ui/Switch';
 import { copyToClipboard } from '../../../../ui/clipboard';
-import { useMeetingStore, type Meeting } from '../../../../store/useMeetingStore';
+import { useMeetingStore, type Meeting, parseJsonList } from '../../../../store/useMeetingStore';
 import { formatDateTime } from '../../../../utils/datetime';
 
 const joinUrl = (code: string) => `${window.location.origin}/join/${code}`;
@@ -84,7 +84,6 @@ export function CreateMeetingModal({
   const [agendaDesc, setAgendaDesc] = React.useState('');
   const [agenda, setAgenda] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
-  const [waitingRoom, setWaitingRoom] = React.useState(true);
 
   const handleCreate = async () => {
     try {
@@ -141,14 +140,6 @@ export function CreateMeetingModal({
           <Input id="cm-title" value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
 
-        <div className="flex items-center justify-between gap-6 py-3 border-y border-line">
-          <div>
-            <p className="t-small font-medium text-ink">Waiting room</p>
-            <p className="t-caption text-ink-3 mt-0.5">Admit guests before they join</p>
-          </div>
-          <Switch checked={waitingRoom} onChange={setWaitingRoom} label="Waiting room" />
-        </div>
-
         <Field
           label="Invite people"
           htmlFor="cm-emails"
@@ -184,7 +175,6 @@ export function ScheduleMeetingModal({
   const [agendaDesc, setAgendaDesc] = React.useState('');
   const [agenda, setAgenda] = React.useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
-  const [waitingRoom, setWaitingRoom] = React.useState(true);
 
   const handleSchedule = async () => {
     try {
@@ -263,14 +253,6 @@ export function ScheduleMeetingModal({
               <option value="120">2 hours</option>
             </Select>
           </Field>
-        </div>
-
-        <div className="flex items-center justify-between gap-6 py-3 border-y border-line">
-          <div>
-            <p className="t-small font-medium text-ink">Waiting room</p>
-            <p className="t-caption text-ink-3 mt-0.5">Admit guests before they join</p>
-          </div>
-          <Switch checked={waitingRoom} onChange={setWaitingRoom} label="Waiting room" />
         </div>
 
         <Field label="Invite people" htmlFor="sm-emails" hint="Comma-separated email addresses.">
@@ -413,12 +395,7 @@ export function MeetingDetailsModal({
     }
   };
 
-  let actionItems: any[] = [];
-  try {
-    if (meeting.actionItems) actionItems = JSON.parse(meeting.actionItems);
-  } catch (e) {
-    console.error('Failed to parse action items', e);
-  }
+  const actionItems = parseJsonList<any>(meeting.actionItems);
 
   const sentimentTone =
     meeting.sentimentLabel === 'POSITIVE'
