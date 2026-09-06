@@ -43,3 +43,17 @@ def get_llm(temperature: float):
         api_key=settings.openai_api_key,
         temperature=temperature,
     )
+
+
+def field(result, name: str):
+    """
+    Read one field from a `with_structured_output` result.
+
+    Depending on the LangChain/provider combination this comes back either as a
+    Pydantic model or as a plain dict. Older OpenAI responses gave a model;
+    Azure returns a dict. Reading through this helper keeps the agents working
+    on both rather than binding them to one provider's return shape.
+    """
+    if isinstance(result, dict):
+        return result.get(name)
+    return getattr(result, name)

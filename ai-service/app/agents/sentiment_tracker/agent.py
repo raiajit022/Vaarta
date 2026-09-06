@@ -1,7 +1,7 @@
 import logging
 from typing import Literal
 from pydantic import BaseModel, Field
-from app.llm import get_llm
+from app.llm import get_llm, field
 from langchain_core.prompts import PromptTemplate
 from app.clients.meeting_service_client import fetch_meeting_chats
 from app.config import settings
@@ -55,6 +55,6 @@ async def run_sentiment_tracker(meeting_id: str) -> dict:
     logger.info(f"Successfully generated sentiment for meeting_id: {meeting_id}")
     
     return {
-        "sentimentLabel": response.label,
-        "sentimentReason": response.reason
+        "sentimentLabel": field(response, "label"),
+        "sentimentReason": field(response, "reason")
     }

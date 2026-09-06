@@ -1,7 +1,7 @@
 import logging
 from typing import List
 from pydantic import BaseModel, Field
-from app.llm import get_llm
+from app.llm import get_llm, field
 from langchain_core.prompts import PromptTemplate
 from app.config import settings
 from app.agents.agenda_generator.prompts import AGENDA_PROMPT
@@ -48,6 +48,6 @@ async def run_agenda_generator(description: str) -> dict:
     logger.info(f"Successfully generated title and agenda")
     
     return {
-        "title": response.title,
-        "agenda": response.agenda
+        "title": field(response, "title"),
+        "agenda": field(response, "agenda")
     }

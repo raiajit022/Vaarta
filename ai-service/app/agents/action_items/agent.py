@@ -2,7 +2,7 @@ import logging
 import json
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from app.llm import get_llm
+from app.llm import get_llm, field
 from langchain_core.prompts import PromptTemplate
 from app.clients.meeting_service_client import fetch_meeting_chats
 from app.config import settings
@@ -64,9 +64,12 @@ async def run_action_items_extractor(meeting_id: str) -> dict:
     logger.debug(f"Invoking LLM chain for meeting_id: {meeting_id}")
     response: ActionItemList = chain.invoke({"chat_text": chat_text})
     
-    logger.info(f"Successfully extracted {len(response.items)} action items for meeting_id: {meeting_id}")
+    items = field(response, "items") or []
+    logger.info(f"Successfully extracted {len(items)} action items for meeting_id: {meeting_id}")
     
     # We return stringified JSON as agreed in the architecture plan
-    action_items_json = json.dumps([item.dict() for item in response.items])
+    action_items_json = json.dumps(
+        [i if isinstance(i, dict) else i.dict() for i in items]
+    )
     
     return {"actionItems": action_items_json}
