@@ -74,3 +74,12 @@ test-db/
 deploy_fix.sh
 deploy.pid
 deploy.log
+
+
+*.pdf
+
+# Interview study report (generated locally, not part of the product)
+VAARTA_REPORT.html
+VAARTA_REPORT.pdf
+VAARTA_FLOW.html
+VAARTA_FLOW.pdf

@@ -1,7 +1,7 @@
 import logging
 from typing import List
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
+from app.llm import get_llm
 from langchain_core.prompts import PromptTemplate
 from app.config import settings
 from app.agents.agenda_generator.prompts import AGENDA_PROMPT
@@ -31,11 +31,7 @@ async def run_agenda_generator(description: str) -> dict:
         logger.info("Empty description provided. Returning default response.")
         return {"title": "Quick Sync", "agenda": ["Introductions", "Main Discussion", "Next Steps"]}
         
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=settings.openai_api_key,
-        temperature=0.7
-    )
+    llm = get_llm(temperature=0.7)
     
     structured_llm = llm.with_structured_output(AgendaResponse)
     

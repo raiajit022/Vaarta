@@ -1,5 +1,5 @@
 import logging
-from langchain_openai import ChatOpenAI
+from app.llm import get_llm
 from langchain_core.prompts import PromptTemplate
 from app.clients.meeting_service_client import fetch_meeting_chats
 from app.config import settings
@@ -43,11 +43,7 @@ async def run_followup_email(meeting_id: str, payload: dict) -> dict:
         pass # keep as string
         
     # 3. LLM
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=settings.openai_api_key,
-        temperature=0.4
-    )
+    llm = get_llm(temperature=0.4)
     
     prompt = PromptTemplate(
         template=FOLLOWUP_EMAIL_PROMPT,

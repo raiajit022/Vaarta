@@ -2,7 +2,7 @@ import logging
 import json
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from langchain_openai import ChatOpenAI
+from app.llm import get_llm
 from langchain_core.prompts import PromptTemplate
 from app.clients.meeting_service_client import fetch_meeting_chats
 from app.config import settings
@@ -46,11 +46,7 @@ async def run_action_items_extractor(meeting_id: str) -> dict:
     chat_text = "\\n".join([f"User {chat.get('senderId', 'Unknown')}: {chat.get('content', '')}" for chat in chats])
     
     # Step 3: Initialize the OpenAI Language Model client
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=settings.openai_api_key,
-        temperature=0.1
-    )
+    llm = get_llm(temperature=0.1)
     
     # Step 4: Use LangChain's structured output to force Pydantic schema
     structured_llm = llm.with_structured_output(ActionItemList)

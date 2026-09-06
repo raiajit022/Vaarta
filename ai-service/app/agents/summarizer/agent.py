@@ -1,5 +1,5 @@
 import logging
-from langchain_openai import ChatOpenAI
+from app.llm import get_llm
 from langchain_core.prompts import PromptTemplate
 from app.clients.meeting_service_client import fetch_meeting_chats
 from app.config import settings
@@ -40,11 +40,7 @@ async def run_summarizer(meeting_id: str) -> dict:
     
     # Step 4: Initialize the OpenAI Language Model client
     # We use a low temperature (0.3) to ensure factual, deterministic summaries
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=settings.openai_api_key,
-        temperature=0.3
-    )
+    llm = get_llm(temperature=0.3)
     
     # Step 5: Construct the Prompt Template using our predefined SUMMARIZER_PROMPT
     prompt = PromptTemplate(

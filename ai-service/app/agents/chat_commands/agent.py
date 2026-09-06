@@ -1,5 +1,5 @@
 import logging
-from langchain_openai import ChatOpenAI
+from app.llm import get_llm
 from langchain_core.prompts import PromptTemplate
 from app.config import settings
 from app.agents.chat_commands.prompts import CHAT_COMMAND_PROMPT
@@ -31,11 +31,7 @@ async def run_chat_command(meeting_id: str, user_command: str) -> dict:
         
     # Initialize the OpenAI Language Model client
     # We use a standard temperature (0.7) for conversational responses
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=settings.openai_api_key,
-        temperature=0.7
-    )
+    llm = get_llm(temperature=0.7)
     
     prompt = PromptTemplate(
         template=CHAT_COMMAND_PROMPT,
